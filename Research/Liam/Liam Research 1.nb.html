@@ -1766,31 +1766,33 @@ pre code {
 
 
 <!-- rnb-text-begin -->
-<p>This is an <a href="http://rmarkdown.rstudio.com">R Markdown</a>
-Notebook. When you execute code within the notebook, the results appear
-beneath the code.</p>
-<p>Try executing this chunk by clicking the <em>Run</em> button within
-the chunk or by placing your cursor inside it and pressing
-<em>Ctrl+Shift+Enter</em>.</p>
+<!-- rnb-text-end -->
+<!-- rnb-text-begin -->
+<p>#GSE129166</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGxvdChjYXJzKVxuYGBgIn0= -->
-<pre class="r"><code>plot(cars)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ3NlMTI5MTY2IDwtIGdldEdFTyhcIkdTRTEyOTE2NlwiKVxuYGBgIn0= -->
+<pre class="r"><code>gse129166 &lt;- getGEO(&quot;GSE129166&quot;)</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRm91bmQgMSBmaWxlKHMpXG5HU0UxMjkxNjZfc2VyaWVzX21hdHJpeC50eHQuZ3pcblVzaW5nIGxvY2FsbHkgY2FjaGVkIHZlcnNpb246IEM6XFxVc2Vyc1xcbG1jY2FcXEFwcERhdGFcXExvY2FsXFxUZW1wXFxSdG1wTzJEZWdjL0dTRTEyOTE2Nl9zZXJpZXNfbWF0cml4LnR4dC5nelxuVXNpbmcgbG9jYWxseSBjYWNoZWQgdmVyc2lvbiBvZiBHUEw1NzAgZm91bmQgaGVyZTpcbkM6XFxVc2Vyc1xcbG1jY2FcXEFwcERhdGFcXExvY2FsXFxUZW1wXFxSdG1wTzJEZWdjL0dQTDU3MC5zb2Z0Lmd6IFxuIn0= -->
+<pre><code>Found 1 file(s)
+GSE129166_series_matrix.txt.gz
+Using locally cached version: C:\Users\lmcca\AppData\Local\Temp\RtmpO2Degc/GSE129166_series_matrix.txt.gz
+Using locally cached version of GPL570 found here:
+C:\Users\lmcca\AppData\Local\Temp\RtmpO2Degc/GPL570.soft.gz </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ3NlMTI5MTY2IDwtIGdzZSRHU0UxMjkxNjZfc2VyaWVzX21hdHJpeC50eHQuZ3pcbmdzZTEyOTE2NlxuYGBgIn0= -->
+<pre class="r"><code>gse129166 &lt;- gse$GSE129166_series_matrix.txt.gz
+gse129166</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiTlVMTFxuIn0= -->
+<pre><code>NULL</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the
-toolbar or by pressing <em>Ctrl+Alt+I</em>.</p>
-<p>When you save the notebook, an HTML file containing the code and
-output will be saved alongside it (click the <em>Preview</em> button or
-press <em>Ctrl+Shift+K</em> to preview the HTML file).</p>
-<p>The preview shows you a rendered HTML copy of the contents of the
-editor. Consequently, unlike <em>Knit</em>, <em>Preview</em> does not
-run any R code chunks. Instead, the output of the chunk when it was last
-run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIkxpYW0gUmVzZWFyY2ggMSINCm91dHB1dDogaHRtbF9ub3RlYm9vaw0KLS0tDQoNClRoaXMgaXMgYW4gW1IgTWFya2Rvd25dKGh0dHA6Ly9ybWFya2Rvd24ucnN0dWRpby5jb20pIE5vdGVib29rLiBXaGVuIHlvdSBleGVjdXRlIGNvZGUgd2l0aGluIHRoZSBub3RlYm9vaywgdGhlIHJlc3VsdHMgYXBwZWFyIGJlbmVhdGggdGhlIGNvZGUuIA0KDQpUcnkgZXhlY3V0aW5nIHRoaXMgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpSdW4qIGJ1dHRvbiB3aXRoaW4gdGhlIGNodW5rIG9yIGJ5IHBsYWNpbmcgeW91ciBjdXJzb3IgaW5zaWRlIGl0IGFuZCBwcmVzc2luZyAqQ3RybCtTaGlmdCtFbnRlciouIA0KDQpgYGB7cn0NCnBsb3QoY2FycykNCmBgYA0KDQpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ3RybCtBbHQrSSouDQoNCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ3RybCtTaGlmdCtLKiB0byBwcmV2aWV3IHRoZSBIVE1MIGZpbGUpLg0KDQpUaGUgcHJldmlldyBzaG93cyB5b3UgYSByZW5kZXJlZCBIVE1MIGNvcHkgb2YgdGhlIGNvbnRlbnRzIG9mIHRoZSBlZGl0b3IuIENvbnNlcXVlbnRseSwgdW5saWtlICpLbml0KiwgKlByZXZpZXcqIGRvZXMgbm90IHJ1biBhbnkgUiBjb2RlIGNodW5rcy4gSW5zdGVhZCwgdGhlIG91dHB1dCBvZiB0aGUgY2h1bmsgd2hlbiBpdCB3YXMgbGFzdCBydW4gaW4gdGhlIGVkaXRvciBpcyBkaXNwbGF5ZWQuDQo=</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIkxpYW0gUmVzZWFyY2ggMSINCm91dHB1dDogaHRtbF9ub3RlYm9vaw0KLS0tDQoNCmBgYHtyLCBpbmNsdWRlPUZBTFNFfQ0KbGlicmFyeSh0aWR5dmVyc2UpDQpsaWJyYXJ5KHR1bmVSKQ0KbGlicmFyeShkZXZ0b29scykNCmxpYnJhcnkoZ2dwbG90MikNCmxpYnJhcnkodHNmZWF0dXJlcykNCmxpYnJhcnkoY2xhc3MpDQpsaWJyYXJ5KGN2VG9vbHMpDQpsaWJyYXJ5KHJhbmRvbUZvcmVzdCkNCmxpYnJhcnkoR0VPcXVlcnkpIA0KbGlicmFyeShSLnV0aWxzKQ0KbGlicmFyeShyZXNoYXBlMikNCmxpYnJhcnkobGltbWEpDQpsaWJyYXJ5KGRwbHlyKQ0KbGlicmFyeShlMTA3MSkNCmxpYnJhcnkoRFQpDQpsaWJyYXJ5KHZpcmlkaXMpDQpsaWJyYXJ5KHBsb3RseSkNCmxpYnJhcnkoc2NhbGVzKQ0KYGBgDQoNCiNHU0UxMjkxNjYNCmBgYHtyfQ0KZ3NlMTI5MTY2IDwtIGdldEdFTygiR1NFMTI5MTY2IikNCmdzZTEyOTE2NiA8LSBnc2UkR1NFMTI5MTY2X3Nlcmllc19tYXRyaXgudHh0Lmd6DQpnc2UxMjkxNjYNCmBgYA0KDQoNCg==</div>
 
 
 
