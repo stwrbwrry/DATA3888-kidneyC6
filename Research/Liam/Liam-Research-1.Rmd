@@ -1,0 +1,79 @@
+---
+title: "Liam Research 1"
+output: html_notebook
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+```
+
+```{r}
+geo_name_list = c("GSE129166", "GSE34748", "GSE51675", "GSE15296", "GSE46474", "GSE50084")
+geo_list = c(getGEO(filename="Data/GSE129166_series_matrix.txt.gz"), getGEO(filename="Data/GSE34748_series_matrix.txt.gz"), getGEO(filename="Data/GSE51675_series_matrix.txt.gz"), getGEO(filename="Data/GSE15296_series_matrix.txt.gz"), getGEO(filename="Data/GSE46474_series_matrix.txt.gz"), getGEO(filename="Data/GSE50084_series_matrix.txt.gz"))
+```
+
+```{r}
+for(geo in geo_list) {
+  print(fData(geo))
+  print(names(which(colSums(is.na(fData(geo)))>0)))
+}
+```
+All gse have a gene symbol column which can be used to match records except for the last one, GSE50084 which has the gene as the 2nd listed element under gene_assignment, and GSE51675 which is missing all of its gene info. 
+
+
+```{r}
+for(geo in geo_list) {
+  print(pData(geo))
+  print(names(which(colSums(is.na(pData(geo)))>0)))
+}
+```
+
+```{r}
+for (geo in geo_list) {
+  print(data.frame(t(exprs(geo))))
+  print(names(which(colSums(is.na(data.frame(t(exprs(geo)))))>0)))
+}
+```
+
+```{r}
+for (geo in geo_list) {
+  df = data.frame(t(exprs(geo)))
+  boxplot(df[1:100])
+}
+```
+Plots for GSE51675 and GSE15296 show that they have been transformed somehow. Other than those, the other 4 seem fairly contained between 0-14 expression intensity.
+
+GSE51675 has been discarded due to small sample size, missing info, and transformed expression values. GSE50084 has been discarded
+
+
+
+```{r}
+# Contains "GSE129166", "GSE34748"
+length(union(fData(geo_list[[1]])["Gene Symbol"], fData(geo_list[[2]])["Gene Symbol"])[[1]])
+```
+
+```{r}
+# Contains "GSE129166", "GSE46474"
+length(union(fData(geo_list[[1]])["Gene Symbol"], fData(geo_list[[5]])["Gene Symbol"])[[1]])
+```
+
+All 3 have perfect overlap so the datasets recommended for use are "GSE129166", "GSE34748", and "GSE46474"
+
+
