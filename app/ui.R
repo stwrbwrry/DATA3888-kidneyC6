@@ -11,9 +11,18 @@ library(shiny)
 library(shinythemes)
 
 # Define UI for application 
-shinyUI(fluidPage(theme = shinytheme("sandstone"),
+shinyUI(
+
+  # import in the css style sheet
+  # tags$head(
+  #   tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
+  # ),
+                  
     # Create a Navbar
-    navbarPage("Kidney Risk Calculator",
+    navbarPage(
+      # get me the theme for website
+      theme = shinytheme("sandstone"), 
+      "Kidney Risk Calculator",
                tabPanel("DashBoard",
                         sidebarLayout(sidebarPanel(
                           textInput("text", "Text input:", value = NULL , placeholder = "Type something!"),
@@ -29,8 +38,6 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                                        column(4,  strong(textOutput("text")), br(), strong(textOutput("slider"))) ,
                                        column(4, "")
                                      )
-                                     
-                                    
                                      ),
                             tabPanel("Tab 2")
                           )
@@ -57,12 +64,10 @@ Duis consectetur quis risus nec porta. Donec eget justo eget elit tincidunt curs
                         ),
                tabPanel("Classifiers"),
                tabPanel("about",
-                        h2("May be delete this if not needed"))
-    ),
+                        h2("May be delete this if not needed")),
+               h1("Please don't hack"),
+               hr(),
+               p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6")
+    )
     
-    h1("Please don't hack"),
-    hr(),
-    p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6")
-    
-    
-))
+)
