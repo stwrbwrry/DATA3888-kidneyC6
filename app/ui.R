@@ -13,13 +13,11 @@ library(shinythemes)
 # Define UI for application 
 shinyUI(
 
-  # import in the css style sheet
-  # tags$head(
-  #   tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
-  # ),
+  
                   
     # Create a Navbar
     navbarPage(
+      
       # get me the theme for website
       theme = shinytheme("sandstone"), 
       "Kidney Risk Calculator",
@@ -67,7 +65,11 @@ Duis consectetur quis risus nec porta. Donec eget justo eget elit tincidunt curs
                         h2("May be delete this if not needed")),
                h1("Please don't hack"),
                hr(),
-               p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6")
+               p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6"),
+      # import in the css style sheet
+      tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "app.css")
+      ),
     )
     
 )
