@@ -11,8 +11,12 @@ library(shiny)
 
 # Define server logic
 shinyServer(function(input, output) {
-  output$uppercase <- renderText({
-        toupper(input$message)
+  output$carExample <- renderPrint({
+        head(mtcars,7)
       })
+  
+  output$titanicExample <- renderPrint({
+    Titanic
+  })
 
 })

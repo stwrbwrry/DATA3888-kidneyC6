@@ -14,37 +14,48 @@ library(shinythemes)
 shinyUI(fluidPage(theme = shinytheme("sandstone"),
     # Create a Navbar
     navbarPage("Kidney Risk Calculator",
-               tabPanel("bioMarkers"),
-               tabPanel("genes"),
-               tabPanel("ml Methods"),
-               tabPanel("about")
-    ),
-    sidebarLayout(sidebarPanel(
-      textInput("txt", "Text input:", "text here"),
-      sliderInput("slider", "Slider input:", 1, 100, 30),
-      actionButton("action", "Button"),
-      actionButton("action2", "Button2", class = "btn-primary")
-    ),
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Tab 1"),
-        tabPanel("Tab 2")
-      )
-    )),
-    
-    fluidRow(
-      column(2,
-             "sidebar"
-      ),
-      column(10,
-             " Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur id sodales erat, eu mollis nunc. Quisque magna turpis, sollicitudin eget ultrices non, vestibulum eget leo. Maecenas quis nisl imperdiet, tincidunt nibh a, ultricies nulla. Aenean quis nibh id nunc aliquet elementum. Vivamus malesuada nec felis in feugiat. Nam et odio volutpat, congue lacus ut, maximus felis. Aenean in rhoncus quam. Aliquam commodo nulla at nulla pharetra, a varius lorem faucibus. Suspendisse fringilla est a tellus eleifend, vestibulum interdum leo efficitur. Nam accumsan aliquet purus, id consectetur purus sollicitudin sed. Mauris quis tellus ut magna aliquam varius quis eget orci. Aenean ut quam id tortor egestas efficitur. In hac habitasse platea dictumst. Morbi ac cursus felis, id malesuada lacus. Vestibulum volutpat tristique purus, malesuada consequat ligula elementum vel. Curabitur quis ex vitae turpis placerat fringilla.
+               tabPanel("DashBoard",
+                        sidebarLayout(sidebarPanel(
+                          textInput("txt", "Text input:", "text here"),
+                          sliderInput("slider", "Slider input:", 1, 100, 30),
+                          actionButton("action", "Button"),
+                          actionButton("action2", "Button2", class = "btn-primary")
+                        ),
+                        mainPanel(
+                          tabsetPanel(
+                            tabPanel("Tab 1",
+                                     "Hello"),
+                            tabPanel("Tab 2")
+                          )
+                        )),
+                        
+                        fluidRow(
+                          column(2,
+                                 "sidebar"
+                          ),
+                          column(10,
+                                 " Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur id sodales erat, eu mollis nunc. Quisque magna turpis, sollicitudin eget ultrices non, vestibulum eget leo. Maecenas quis nisl imperdiet, tincidunt nibh a, ultricies nulla. Aenean quis nibh id nunc aliquet elementum. Vivamus malesuada nec felis in feugiat. Nam et odio volutpat, congue lacus ut, maximus felis. Aenean in rhoncus quam. Aliquam commodo nulla at nulla pharetra, a varius lorem faucibus. Suspendisse fringilla est a tellus eleifend, vestibulum interdum leo efficitur. Nam accumsan aliquet purus, id consectetur purus sollicitudin sed. Mauris quis tellus ut magna aliquam varius quis eget orci. Aenean ut quam id tortor egestas efficitur. In hac habitasse platea dictumst. Morbi ac cursus felis, id malesuada lacus. Vestibulum volutpat tristique purus, malesuada consequat ligula elementum vel. Curabitur quis ex vitae turpis placerat fringilla.
 
 Duis consectetur quis risus nec porta. Donec eget justo eget elit tincidunt cursus. Nulla facilis"
-      )
+                          )
+                        )
+                ),
+               tabPanel("bioMarkers",
+                        h2("Motor cars(DELETE)"),
+                        verbatimTextOutput("carExample")
+                        ),
+               tabPanel("genes",
+                        h2("Titanic(DELETE)"),
+                        verbatimTextOutput("titanicExample")
+                        ),
+               tabPanel("Classifiers"),
+               tabPanel("about",
+                        h2("May be delete this if not needed"))
     ),
+    
     h1("Please don't hack"),
     hr(),
-    p("By Mukund, Liam, Charlotte, Amy, Khang")
+    p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6")
     
     
 ))
