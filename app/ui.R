@@ -16,7 +16,7 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
     navbarPage("Kidney Risk Calculator",
                tabPanel("DashBoard",
                         sidebarLayout(sidebarPanel(
-                          textInput("txt", "Text input:", "text here"),
+                          textInput("text", "Text input:", value = NULL , placeholder = "Type something!"),
                           sliderInput("slider", "Slider input:", 1, 100, 30),
                           actionButton("action", "Button"),
                           actionButton("action2", "Button2", class = "btn-primary")
@@ -26,10 +26,8 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                             tabPanel("Tab 1",
                                      fluidRow(
                                        column(4, ""),
-                                       column(4,  paste("Text value: ", "30", sep=" "), 
-                                              br(),  
-                                              paste("Current slider value: ", "30", sep=" ")),
-                                       column(4, "end")
+                                       column(4,  strong(textOutput("text")), br(), strong(textOutput("slider"))) ,
+                                       column(4, "")
                                      )
                                      
                                     

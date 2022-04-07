@@ -18,5 +18,14 @@ shinyServer(function(input, output) {
   output$titanicExample <- renderPrint({
     Titanic
   })
+  
+  output$text <- renderText({
+    paste("Current Text value: ", input$text)
+  })
+  
+  output$slider <- renderText({
+    paste("Current Slider value: ", input$slider)
+  })
+  
 
 })
