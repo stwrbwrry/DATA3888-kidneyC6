@@ -24,7 +24,16 @@ shinyUI(fluidPage(theme = shinytheme("sandstone"),
                         mainPanel(
                           tabsetPanel(
                             tabPanel("Tab 1",
-                                     "Hello"),
+                                     fluidRow(
+                                       column(4, ""),
+                                       column(4,  paste("Text value: ", "30", sep=" "), 
+                                              br(),  
+                                              paste("Current slider value: ", "30", sep=" ")),
+                                       column(4, "end")
+                                     )
+                                     
+                                    
+                                     ),
                             tabPanel("Tab 2")
                           )
                         )),
