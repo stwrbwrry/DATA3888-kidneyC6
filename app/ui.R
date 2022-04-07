@@ -11,13 +11,27 @@ library(shiny)
 library(shinythemes)
 
 # Define UI for application 
-shinyUI(fluidPage(theme = bs_theme(version = 4, bootswatch = "minty"),
+shinyUI(fluidPage(theme = shinytheme("sandstone"),
     # Create a Navbar
-    navbarPage("Shared Kidney Risk Calculator",
-               tabPanel("BioMarkers"),
-               tabPanel("ML Methods"),
-               tabPanel("About")
+    navbarPage("Kidney Risk Calculator",
+               tabPanel("bioMarkers"),
+               tabPanel("genes"),
+               tabPanel("ml Methods"),
+               tabPanel("about")
     ),
+    sidebarLayout(sidebarPanel(
+      textInput("txt", "Text input:", "text here"),
+      sliderInput("slider", "Slider input:", 1, 100, 30),
+      actionButton("action", "Button"),
+      actionButton("action2", "Button2", class = "btn-primary")
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Tab 1"),
+        tabPanel("Tab 2")
+      )
+    )),
+    
     fluidRow(
       column(2,
              "sidebar"
@@ -28,11 +42,9 @@ shinyUI(fluidPage(theme = bs_theme(version = 4, bootswatch = "minty"),
 Duis consectetur quis risus nec porta. Donec eget justo eget elit tincidunt cursus. Nulla facilis"
       )
     ),
-    h1("hey bro!"),
+    h1("Please don't hack"),
+    hr(),
+    p("By Mukund, Liam, Charlotte, Amy, Khang")
     
-    fluidRow(
-      column(4),
-      column(4, "hello this is some text"),
-      column(4)
-    )
+    
 ))
