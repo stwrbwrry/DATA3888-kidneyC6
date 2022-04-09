@@ -5,26 +5,156 @@ date: "28/03/2022"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(ggplot2)
+library(limma)
+library(dplyr)
+library(devtools)
+library(prideR)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r}
+gse129166 <- getGEO("GSE129166", GSEMatrix = T, getGPL = F)
+gse129166 <- gse129166$GSE129166_series_matrix.txt.gz
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+head(pData(gse129166))
+fData(gse129166)
+head(exprs(gse129166))
+
+
 ```
 
-## Including Plots
+```{r}
+gse13440 <- getGEO("GSE13440", GSEMatrix = T, getGPL = F)
+gse13440 <- gse13440$GSE13440_series_matrix.txt.gz
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+head(pData(gse13440))
+head(exprs(gse13440))
+
+transpose_gse13440 <- t(exprs(gse13440)[2000:2100,])
+View(transpose_gse13440)
+boxplot(transpose_gse13440)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+gse129166 <- getGEO("GSE129166", GSEMatrix = T, getGPL = F)
+gse129166 <- gse129166$GSE129166_series_matrix.txt.gz
+
+
+head(pData(gse129166))
+head(exprs(gse129166))
+
+transpose_gse129166 <- t(exprs(gse129166)[1001:2000,])
+boxplot(transpose_gse129166)
+
+head(Meta(gse129166))
+```
+
+## The datasets I am checking
+
+### GSE34437 biopsy
+kinda weird as it has multiple characteristics - not just reject or stable, but reject, stable, baseline living donor, no significant abnormalities
+66 people so not bad
+Gene expression data is given as probes (e.g. 1007_s_at or 1255_g_at which may need some form of webscraping if we want to integrate this with actual gene names)
+```{r}
+gse34437 <- getGEO("GSE34437", GSEMatrix = T, getGPL = F)
+gse34437 <- gse34437$GSE34437_series_matrix.txt.gz
+
+pData(gse34437)
+head(exprs(gse34437))
+```
+
+### GSE75693 biopsy
+easy to clean the conditions but some weird ones - 'Absence of chronic allograft nephropathy' or 'BVKN'
+79 obvs so not bad
+Gene expression data is given as probes (e.g. 1007_s_at or 1255_g_at which may need some form of webscraping if we want to integrate this with actual gene names)
+ 
+```{r}
+gse75693 <- getGEO("GSE75693", GSEMatrix = T, getGPL = F)
+gse75693 <- gse75693$GSE75693_series_matrix.txt.gz
+
+pData(gse75693)
+head(exprs(gse75693))
+```
+
+### GSE109564 biopsy
+Doesn't work + also only 7 obs
+```{r}
+gse109564 <- getGEO("GSE109564", GSEMatrix = T, getGPL = F)
+gse109564 <- gse109564$GSE109564_series_matrix.txt.gz
+
+pData(gse109564)
+head(exprs(gse109564))
+```
+
+### GSE112927 blood
+Lots of observations but expression data is weird
+```{r}
+gse112927 <- getGEO("GSE112927", GSEMatrix = T, getGPL = F)
+gse112927 <- gse112927$GSE112927_series_matrix.txt.gz
+
+pData(gse112927)
+head(exprs(gse112927))
+fData(gse112927)
+```
+
+### GSE1563 blood
+Good data set with 31 obs that looks consistent with the others in terms of gene markers
+```{r}
+gse1563 <- getGEO("GSE1563", GSEMatrix = T, getGPL = F)
+gse1563 <- gse1563$GSE1563_series_matrix.txt.gz
+
+pData(gse1563)
+head(exprs(gse1563))
+fData(gse1563)
+
+transpose_gse1563 <- t(exprs(gse1563)[1001:1100,])
+boxplot(transpose_gse1563, medcol = "red")
+```
+
+### GSE20300
+only 24 samples but clear labelling of stable and unstable as well as same gene markers used
+```{r}
+gse20300 <- getGEO("GSE20300", GSEMatrix = T, getGPL = F)
+gse20300 <- gse20300$GSE20300_series_matrix.txt.gz
+
+pData(gse20300)
+head(exprs(gse20300))
+fData(gse20300)
+```
+
+### GSE22707
+24 samples. Should eb fine to extract reject, stable based on which function
+Same structure of genes as prev datasets
+```{r}
+gse22707 <- getGEO("GSE22707", GSEMatrix = T, getGPL = F)
+gse22707 <- gse22707$GSE22707_series_matrix.txt.gz
+
+pData(gse22707)
+head(exprs(gse22707))
+fData(gse22707)
+
+transpose_gse22707 <- t(exprs(gse22707)[200:300,])
+boxplot(transpose_gse22707, medcol="red")
+```
+
+
+### GSE98320
+Doesn't have a reject or stable column
+```{r}
+gse98320 <- getGEO("GSE98320", GSEMatrix = T, getGPL = F)
+gse98320 <- gse98320$GSE98320_series_matrix.txt.gz
+
+pData(gse98320)
+head(exprs(gse98320))
+fData(gse98320)
+```
+
+### 
