@@ -1,0 +1,109 @@
+---
+title: "Liam-Research-2-Integration"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+```
+
+```{r}
+gse36059 = getGEO("GSE36059")[[1]]
+gse48581 = getGEO("GSE48581")[[1]]
+gse129166 = getGEO("GSE129166")[[1]]
+gse15296 = getGEO("GSE15296")[[1]]
+```
+
+
+
+```{r}
+gse36074_f = fData(gse36059)
+gse36074_f
+gse36074_f = fData(gse48581)
+gse36074_f
+gse129166_f = fData(gse129166)
+gse129166_f
+gse15296_f = fData(gse15296)
+gse15296_f
+```
+
+```{r}
+gse36074_p = pData(gse36059)
+gse36074_p
+gse48581_p = pData(gse48581)
+gse48581_p
+gse129166_p = pData(gse129166)
+gse129166_p
+gse15296_p = pData(gse15296)
+gse15296_p
+```
+Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR (anti-donor antibody-mediated rejection), and MIXED. Also has nephrectomy.
+
+
+```{r}
+gse36074_ex = data.frame(t(exprs(gse36059)))
+gse36074_ex
+gse48581_ex = data.frame(t(exprs(gse48581)))
+gse48581_ex
+gse129166_ex = data.frame(t(exprs(gse129166)))
+gse129166_ex
+gse15296_ex = data.frame(t(exprs(gse15296)))
+gse15296_ex
+```
+```{r}
+start = 1
+stop = 100
+boxplot(gse36074_ex[start:stop])
+boxplot(gse48581_ex[start:stop])
+boxplot(gse129166_ex[start:stop])
+boxplot(gse15296_ex[start:stop])
+```
+
+
+
+
+```{r}
+merge(gse36074_ex, gse48581_ex, all = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
