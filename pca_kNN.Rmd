@@ -1,0 +1,140 @@
+---
+title: "PCA_gse36059"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## PCA
+
+```{r}
+library(GEOquery)
+library(ggplot2)
+library(reshape2)
+library(plotly)
+library(dplyr)
+library(cvTools)
+library(class)
+library(randomForest)
+```
+
+```{r}
+gset <- getGEO("GSE36059", GSEMatrix =TRUE, getGPL=FALSE)
+GSE36059 <- gset$GSE36059_series_matrix.txt.gz
+
+gset <- getGEO("GSE48581", GSEMatrix =TRUE, getGPL=FALSE)
+GSE48581 <- gset$GSE48581_series_matrix.txt.gz
+```
+
+```{r}
+p = ggplot(melt(exprs(GSE36059)), aes(x=Var2, y=value)) +  
+  geom_boxplot(outlier.colour="black", outlier.shape=16,outlier.size=0.5, notch=FALSE) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs (x = "patient", y = "expression value")
+```
+
+
+```{r}
+pca_gse36059 <- prcomp(t(exprs(GSE36059)))
+pca <- prcomp(t(exprs(varGSE36059)))
+options(digits = 2)
+summary(pca_gse36059)
+
+df_toplot <- data.frame(varGSE36059$characteristics_ch1, 
+                        pc1 = pca$x[,1], pc2 = pca$x[,2]  )
+ggplot(df_toplot, aes(x = pc1, y = pc2, color = varGSE36059.characteristics_ch1)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+
+filtered <- df_toplot %>% filter(varGSE36059.characteristics_ch1 != "diagnosis: Nephrectomy") %>% mutate(outcome = ifelse(grepl("diagnosis: non-rejecting", varGSE36059.characteristics_ch1),"stable", "rejection"))
+
+ggplot(filtered, aes(x = pc1, y = pc2, color = outcome)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+
+# most variable genes 
+
+largevar = apply(GSE36059, 1, var)
+ind = which(largevar > quantile(largevar, 0.95))
+varGSE36059 = GSE36059[ind,]
+
+var_pca <- prcomp(t(exprs(varGSE36059)))
+
+df_toplot <- data.frame(varGSE36059$characteristics_ch1, 
+                        pc1 = var_pca$x[,1], pc2 = var_pca$x[,2]  )
+ggplot(df_toplot, aes(x = pc1, y = pc2, color = varGSE36059.characteristics_ch1)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+
+filtered <- df_toplot %>% filter(varGSE36059.characteristics_ch1 != "diagnosis: Nephrectomy") %>% mutate(outcome = ifelse(grepl("diagnosis: non-rejecting", varGSE36059.characteristics_ch1),"stable", "rejection"))
+
+ggplot(filtered, aes(x = pc1, y = pc2, color = outcome)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+```
+
+
+```{r}
+pca_GSE48581 <- prcomp(t(exprs(GSE48581)))
+options(digits = 2)
+summary(pca_GSE48581)
+
+df_toplot <- data.frame(GSE48581$characteristics_ch1.1, 
+                        pc1 = pca_GSE48581$x[,1], pc2 = pca_GSE48581$x[,2]  )
+ggplot(df_toplot, aes(x = pc1, y = pc2, color = GSE48581.characteristics_ch1.1)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+
+filtered <- df_toplot %>% filter(GSE48581.characteristics_ch1.1 != "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy") %>% mutate(outcome = ifelse(grepl("diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", GSE48581.characteristics_ch1.1),"stable", "rejection"))
+
+ggplot(filtered, aes(x = pc1, y = pc2, color = GSE48581.characteristics_ch1.1)) + 
+  geom_point(size = 2) + 
+  theme_minimal() 
+```
+
+```{r}
+largevar = apply(GSE36059, 1, var)
+ind = which(largevar > quantile(largevar, 0.9))
+
+X = as.matrix(t(exprs(GSE36059[ind,])))
+y = GSE36059$`diagnosis:ch1`
+
+cvK = 5  # number of CV folds
+cv_acc_knn = c() 
+
+cvSets = cvTools::cvFolds(nrow(X), cvK)  # permute all the data, into 5 folds
+
+for (j in 1:cvK) {
+  test_id = cvSets$subsets[cvSets$which == j]
+  X_test = X[test_id, ]
+  X_train = X[-test_id, ]
+  y_test = y[test_id]
+  y_train = y[-test_id]
+  
+  ## KNN
+  fit5 = class::knn(train = X_train, test = X_test, cl = y_train, k = 5)
+  cv_acc_knn[j] = mean(fit5 == y_test)
+}
+```
+
+```{r}
+boxplot(cv_acc_knn, ylab="CV Accuracy")
+```
+
+
+
+```{r}
+load("labs/data/gse_GSE46474.RData")
+gse_GSE46474
+
+gse_pca <- prcomp(t(exprs(gse_GSE46474)))
+summary(gse_pca)
+df_toplot <- data.frame(gse_GSE46474$Outcome, 
+                        pc1 = gse_pca$x[,1], pc2 = gse_pca$x[,2]  )
+g <- ggplot(df_toplot, aes(x = pc1, y = pc2, color = gse_GSE46474.Outcome)) + 
+  geom_point(size = 4) + 
+  theme_minimal() 
+g
+```
+

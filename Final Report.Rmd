@@ -1,0 +1,28 @@
+---
+title: "Final Report"
+output: html_notebook
+---
+
+# Introduction
+
+
+# Data Cleaning
+
+## Data Cleaning Flowchart
+
+
+# Data Integration
+
+
+# Model Creation and Evaluation
+
+## Evaluation Flowchart
+
+
+# About the Shiny App (May not be needed for the report)
+
+
+# Results and Interpretation
+
+
+# Conclusion
