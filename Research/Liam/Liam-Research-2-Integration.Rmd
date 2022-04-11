@@ -54,6 +54,19 @@ gse129166_p
 gse15296_p = pData(gse15296)
 gse15296_p
 ```
+
+
+```{r}
+gse36074_p$diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+```
+
+```{r}
+gse36074_p
+gse48581_p
+gse129166_p
+```
 Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR (anti-donor antibody-mediated rejection), and MIXED. Also has nephrectomy.
 
 
