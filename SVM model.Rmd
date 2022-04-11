@@ -1,0 +1,61 @@
+---
+title: "SVM model"
+output: html_document
+date: '2022-04-04'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(GEOquery)
+```
+
+```{r}
+gset <- getGEO("GSE36059", GSEMatrix = TRUE, getGPL = FALSE)
+GSE36059 <- gset$GSE36059_series_matrix.txt.gz
+```
+
+```{r}
+largevar = apply(GSE36059, 1, var)
+ind = which(largevar > quantile(largevar, 0.9))
+```
+
+
+```{r}
+X = as.matrix(t(exprs(GSE36059[ind,])))
+y = GSE36059$`diagnosis:ch1`
+
+cvK = 5 # Number of CV folds
+cv_acc_svm = cv_50acc5_svm = c()
+
+for (i in 1:10) {
+  
+  cvSets = cvTools::cvFolds(nrow(X), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X[test_id, ]
+      X_train = X[-test_id, ]
+      y_test = y[test_id]
+      y_train = y[-test_id]
+      
+      #SVM
+      svm_res <- e1071::svm(x = X_train, y = as.factor(y_train))
+      fit <- predict(svm_res, X_test)
+      cv_acc_svm[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_svm <- append(cv_50acc5_svm, mean(cv_acc_svm))
+}
+```
+
+```{r}
+boxplot(cv_50acc5_svm, ylab="CV Accuracy")
+```
+
+```{r}
+cv_50acc5_svm
+```
+
