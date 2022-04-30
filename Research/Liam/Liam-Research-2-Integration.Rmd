@@ -28,7 +28,6 @@ library(scales)
 gse36059 = getGEO("GSE36059")[[1]]
 gse48581 = getGEO("GSE48581")[[1]]
 gse129166 = getGEO("GSE129166")[[1]]
-gse15296 = getGEO("GSE15296")[[1]]
 ```
 
 
@@ -40,8 +39,6 @@ gse36074_f = fData(gse48581)
 gse36074_f
 gse129166_f = fData(gse129166)
 gse129166_f
-gse15296_f = fData(gse15296)
-gse15296_f
 ```
 
 ```{r}
@@ -51,8 +48,6 @@ gse48581_p = pData(gse48581)
 gse48581_p
 gse129166_p = pData(gse129166)
 gse129166_p
-gse15296_p = pData(gse15296)
-gse15296_p
 ```
 
 
@@ -61,6 +56,16 @@ gse36074_p$diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-
 gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
 gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
 ```
+
+```{r}
+gse36074_p$exact_diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36074_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36074_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+
+gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
+
+```
+
 
 ```{r}
 gse36074_p
@@ -77,8 +82,6 @@ gse48581_ex = data.frame(t(exprs(gse48581)))
 gse48581_ex
 gse129166_ex = data.frame(t(exprs(gse129166)))
 gse129166_ex
-gse15296_ex = data.frame(t(exprs(gse15296)))
-gse15296_ex
 ```
 ```{r}
 start = 1
@@ -86,7 +89,6 @@ stop = 100
 boxplot(gse36074_ex[start:stop])
 boxplot(gse48581_ex[start:stop])
 boxplot(gse129166_ex[start:stop])
-boxplot(gse15296_ex[start:stop])
 ```
 
 
