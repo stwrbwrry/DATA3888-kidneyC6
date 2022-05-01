@@ -27,8 +27,13 @@ library(matrixStats)
 ```
 
 ```{r}
-geo_name_list = c("GSE129166", "GSE34748", "GSE51675", "GSE15296", "GSE46474", "GSE50084")
-geo_list = c(getGEO(filename="Data/GSE129166_series_matrix.txt.gz"), getGEO(filename="Data/GSE34748_series_matrix.txt.gz"), getGEO(filename="Data/GSE51675_series_matrix.txt.gz"), getGEO(filename="Data/GSE15296_series_matrix.txt.gz"), getGEO(filename="Data/GSE46474_series_matrix.txt.gz"), getGEO(filename="Data/GSE50084_series_matrix.txt.gz"))
+geo_name_list = c("GSE129166", "GSE34748", "GSE51675", "GSE15296", "GSE46474", "GSE50084", "GSE36059", "GSE48581")
+geo_list = c(getGEO(filename="Data/GSE129166_series_matrix.txt.gz"), getGEO(filename="Data/GSE34748_series_matrix.txt.gz"), getGEO(filename="Data/GSE51675_series_matrix.txt.gz"), getGEO(filename="Data/GSE15296_series_matrix.txt.gz"), getGEO(filename="Data/GSE46474_series_matrix.txt.gz"), getGEO(filename="Data/GSE50084_series_matrix.txt.gz"), getGEO(filename="Data/GSE36059_series_matrix.txt.gz"), getGEO(filename="Data/GSE48581_series_matrix.txt.gz"))
+
+### GSE36059
+### GSE48581
+
+getGEO(filename="Data/GSE36059_series_matrix.txt.gz")
 ```
 
 ```{r}
@@ -109,15 +114,23 @@ Also no clinical data
 ```{r}
 #CPOP data
 
+GSE36059 = getGEO("GSE36059")[[1]]
+GSE48581 = getGEO("GSE48581")[[1]]
+GSE129166 = getGEO("GSE129166")[[1]]
+GSE15296 = getGEO("GSE15296")[[1]]
+```
+
+
+```{r}
 ## keeping only the 100 most variable genes in my data frame 
-exp_GSE34748 = (exprs(GSE34748))
-Variance = rowVars(as.matrix(exp_GSE34748))
+exp_GSE36059 = (exprs(GSE36059))
+Variance = rowVars(as.matrix(exp_GSE36059))
 Variance = as.data.frame(Variance)
-exp_GSE34748 = as.data.frame(exp_GSE34748)
-exp_GSE34748 = cbind(exp_GSE34748, variance = Variance)
-exp_GSE34748 = slice_max(exp_GSE34748, order_by = Variance, n = 2000)
-exp_GSE34748 = subset(exp_GSE34748, select = -c(Variance))
-row_names_exp_GSE34748 = rownames(exp_GSE34748)
+exp_GSE36059 = as.data.frame(exp_GSE36059)
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+row_names_exp_GSE36059 = rownames(exp_GSE36059)
 
 
 exp_GSE46474 = (exprs(GSE46474))
@@ -130,85 +143,85 @@ exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
 row_names_exp_GSE46474 = rownames(exp_GSE46474)
 
 
-exp_GSE129166 = (exprs(GSE129166))
-Variance = rowVars(as.matrix(exp_GSE129166))
+exp_GSE48581 = (exprs(GSE48581))
+Variance = rowVars(as.matrix(exp_GSE48581))
 Variance = as.data.frame(Variance)
-exp_GSE129166 = as.data.frame(exp_GSE129166)
-exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
-exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
-exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
-row_names_exp_GSE129166 = rownames(exp_GSE129166)
+exp_GSE48581 = as.data.frame(exp_GSE48581)
+exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
+exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
+exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
+row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
 
-intersection = intersect(row_names_exp_GSE34748, row_names_exp_GSE46474)
-intersection = intersect(intersection, row_names_exp_GSE129166)
+intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
+intersection = intersect(intersection, row_names_exp_GSE48581)
 
-exp_GSE34748 = as.data.frame(t(as.matrix(exp_GSE34748)))
-exp_GSE34748 = subset(exp_GSE34748, select = c(intersection))
+exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
+exp_GSE36059 = subset(exp_GSE36059, select = c(intersection))
 
 exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474)))
 exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
 
-exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
-exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
+exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
+exp_GSE48581 = subset(exp_GSE48581, select = c(intersection))
 
-GSE34748_id <- data.frame("Dataset" = rep("GSE34748",nrow(exp_GSE34748)))
+GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059)))
 GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
-GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
+GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
 
-z1 = exp_GSE34748 %>% as.matrix()
-z2 = exp_GSE46474 %>% as.matrix()
-z3 = exp_GSE129166 %>% as.matrix()
+z1 = exp_GSE36059 %>% as.matrix()
+z3 = exp_GSE46474 %>% as.matrix()
+z2 = exp_GSE48581 %>% as.matrix()
 
 ## arcsine transformation
 
-exp_GSE34748_arc <- exp_GSE34748
-exp_GSE34748_arc = exp_GSE34748_arc / max(exp_GSE34748_arc)
-exp_GSE34748_arc = asin(sqrt(exp_GSE34748_arc))
+exp_GSE36059_arc <- exp_GSE36059
+exp_GSE36059_arc = exp_GSE36059_arc / max(exp_GSE36059_arc)
+exp_GSE36059_arc = asin(sqrt(exp_GSE36059_arc))
 
 exp_GSE46474_arc <- exp_GSE46474
 exp_GSE46474_arc = exp_GSE46474_arc / max(exp_GSE46474_arc)
 exp_GSE46474_arc = asin(sqrt(exp_GSE46474_arc))
 
-exp_GSE129166_arc <- exp_GSE129166
-exp_GSE129166_arc = exp_GSE129166_arc / max(exp_GSE129166_arc)
-exp_GSE129166_arc = asin(sqrt(exp_GSE129166_arc))
+exp_GSE48581_arc <- exp_GSE48581
+exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
+exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
 
 z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
 z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
 z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
 
 
-z1_arc = pairwise_col_diff(exp_GSE34748_arc) %>% as.matrix()
-z2_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
-z3_arc = pairwise_col_diff(exp_GSE129166_arc) %>% as.matrix()
+z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
+z3_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
+z2_arc = pairwise_col_diff(exp_GSE48581_arc) %>% as.matrix()
 
 ## log transform
 
-exp_GSE34748_log <- exp_GSE34748
-exp_GSE34748_log = exp_GSE34748_log + 1
-exp_GSE34748_log = log(exp_GSE34748_log)
+exp_GSE36059_log <- exp_GSE36059
+exp_GSE36059_log = exp_GSE36059_log + 1
+exp_GSE36059_log = log(exp_GSE36059_log)
 
 exp_GSE46474_log <- exp_GSE46474
 exp_GSE46474_log = exp_GSE46474_log + 1
 exp_GSE46474_log = log(exp_GSE46474_log)
 
-exp_GSE129166_log <- exp_GSE129166
-exp_GSE129166_log = exp_GSE129166_log + 1
-exp_GSE129166_log = log(exp_GSE129166_log)
+exp_GSE48581_log <- exp_GSE48581
+exp_GSE48581_log = exp_GSE48581_log + 1
+exp_GSE48581_log = log(exp_GSE48581_log)
 
-z1_log = pairwise_col_diff(exp_GSE34748_log) %>% as.matrix()
-z2_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
-z3_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
+z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
+z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
+z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
 
 
 ```
 
 ## pre transformation plot
 ```{r}
-box11 = cbind(boxplot_tbl(z1, index = 1), GSE34748_id)
-box22 = cbind(boxplot_tbl(z2, index = 1), GSE46474_id)
-box33 = cbind(boxplot_tbl(z3, index = 1), GSE129166_id)
+box11 = cbind(boxplot_tbl(z1, index = 1), GSE36059_id)
+box22 = cbind(boxplot_tbl(z3, index = 1), GSE46474_id)
+box33 = cbind(boxplot_tbl(z2, index = 1), GSE48581_id)
 box4 = rbind(box11, box22, box33)
 
 expressionplot <-
@@ -233,9 +246,9 @@ expressionplot
 
 ## Boxplot to visualise if the arc transformations were good
 ```{r}
-box1_arc = cbind(boxplot_tbl(z1_arc, index = 1), GSE34748_id)
-box2_arc = cbind(boxplot_tbl(z2_arc, index = 1), GSE46474_id)
-box3_arc = cbind(boxplot_tbl(z3_arc, index = 1), GSE129166_id)
+box1_arc = cbind(boxplot_tbl(z1_arc, index = 1), GSE36059_id)
+box2_arc = cbind(boxplot_tbl(z3_arc, index = 1), GSE46474_id)
+box3_arc = cbind(boxplot_tbl(z2_arc, index = 1), GSE48581_id)
 box4_arc = rbind(box1_arc, box2_arc, box3_arc)
 
 arcplot <-
@@ -257,9 +270,9 @@ arcplot
 
 ## boxplot to see if the log transformation was good
 ```{r}
-box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE34748_id)
-box2_log = cbind(boxplot_tbl(z2_log, index = 1), GSE46474_id)
-box3_log = cbind(boxplot_tbl(z3_log, index = 1), GSE129166_id)
+box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
+box2_log = cbind(boxplot_tbl(z3_log, index = 1), GSE46474_id)
+box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
 box4_log = rbind(box1_log, box2_log, box3_log)
 
 logplot <-
@@ -280,14 +293,85 @@ logplot
 ```
 ## getting the results vectors 
 ```{r}
-pData(GSE46474)
-pData(GSE129166) #is there rejection and stable
-pData(GSE34748) #no reject or stable
+p_GSE46474 = pData(GSE46474)
+p_GSE48581 = pData(GSE48581) 
+p_GSE36059 = pData(GSE36059) 
 
+p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
 
-
+y1 = as.factor(p_GSE36059$diagnosis)
+y2 = as.factor(p_GSE48581$diagnosis)
+y3 = as.factor(p_GSE46474$diagnosis)
 ### GSE36059
 ### GSE48581
 # these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
+```
+
+
+## running CPOP
+```{r}
+#CPOP model
+
+
+counter = 0
+
+bal_acc_y3_test = numeric(length(101))
+features_test = numeric(length(101))
+y3_alpha_accuracy_list = list()
+features_list = list()
+
+for (i in c(71)) {
+  set.seed(3888)
+  counter = counter + 1
+  #alpha_vector = seq(0.01, 1, by=0.01)
+  alpha_vector = c(0, 0.01,0.05, 0.5, 0.9, 1)
+  counter2 = 0
+  for(a in alpha_vector){
+    counter2 = counter2 + 1
+      cpopresult=
+      cpop_model(
+        z1_log,
+        z2_log,
+        y1,
+        y2,
+        w = NULL,
+        n_features = 30,
+        n_iter = 20,
+        alpha = 1,
+        family = "binomial",
+        s = "lambda.min",
+        cpop2_break = TRUE,
+        cpop2_type = "sign",
+        cpop2_mag = 1,
+        cpop1_method = "normal",
+        intercept = FALSE)
+
+    prediction_z3 <- predict_cpop(cpopresult, z3_log, s = "lambda.min")
+    c = is.na(prediction_z3$cpop_model_avg_class)
+    na_index1 = which(c %in% c(TRUE))
+    
+    if (length(na_index1) == 0) {
+      bal_acc <- yardstick::bal_accuracy_vec(
+      truth = y3,
+      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
+    }
+    else {
+      bal_acc <- yardstick::bal_accuracy_vec(
+      truth = y3,
+      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
+    }
+    
+    bal_acc_y3_test[counter2] = bal_acc
+    features_test[counter2] = length(cpopresult$features)
+  }
+  
+  y3_alpha_accuracy_list[[counter]] = bal_acc_y3_test
+  features_list[[counter]] = features_test
+  print(y3_alpha_accuracy_list)
+}
+
+
 ```
 
