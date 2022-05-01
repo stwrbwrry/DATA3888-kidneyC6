@@ -49,15 +49,24 @@ gse48581_p
 gse129166_p = pData(gse129166)
 gse129166_p
 ```
+```{r}
+#Remove Nephrectomy outcomes
+gse36074_p = gse36074_p[!(gse36074_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
+
+gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy"),]
+```
 
 
 ```{r}
+#Encodes stable as 0 and rejecting as 1
 gse36074_p$diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
 gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
 gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
 ```
 
+
 ```{r}
+#Encodes stable as 0, ABMR as 1, TCMR as 2, Mixed as 3
 gse36074_p$exact_diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36074_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36074_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
 
 gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
