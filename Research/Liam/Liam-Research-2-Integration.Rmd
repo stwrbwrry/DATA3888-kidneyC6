@@ -33,17 +33,17 @@ gse129166 = getGEO("GSE129166")[[1]]
 
 
 ```{r}
-gse36074_f = fData(gse36059)
-gse36074_f
-gse36074_f = fData(gse48581)
-gse36074_f
+gse36059_f = fData(gse36059)
+gse36059_f
+gse48581_f = fData(gse48581)
+gse48581_f
 gse129166_f = fData(gse129166)
 gse129166_f
 ```
 
 ```{r}
-gse36074_p = pData(gse36059)
-gse36074_p
+gse36059_p = pData(gse36059)
+gse36059_p
 gse48581_p = pData(gse48581)
 gse48581_p
 gse129166_p = pData(gse129166)
@@ -51,7 +51,7 @@ gse129166_p
 ```
 ```{r}
 #Remove Nephrectomy outcomes
-gse36074_p = gse36074_p[!(gse36074_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
+gse36059_p = gse36059_p[!(gse36059_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
 
 gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy"),]
 ```
@@ -59,7 +59,7 @@ gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1=="diagnosis (tcmr, abmr
 
 ```{r}
 #Encodes stable as 0 and rejecting as 1
-gse36074_p$diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+gse36059_p$diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
 gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
 gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
 ```
@@ -67,9 +67,9 @@ gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 
 
 ```{r}
 #Encodes stable as 0, ABMR as 1, TCMR as 2, Mixed as 3
-gse36074_p$exact_diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36074_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36074_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+gse36059_p$exact_diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36059_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36059_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
 
-gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1.1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
 
 gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
 
@@ -77,7 +77,7 @@ gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr
 
 
 ```{r}
-gse36074_p
+gse36059_p
 gse48581_p
 gse129166_p
 ```
@@ -85,8 +85,8 @@ Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR 
 
 
 ```{r}
-gse36074_ex = data.frame(t(exprs(gse36059)))
-gse36074_ex
+gse36059_ex = data.frame(t(exprs(gse36059)))
+gse36059_ex
 gse48581_ex = data.frame(t(exprs(gse48581)))
 gse48581_ex
 gse129166_ex = data.frame(t(exprs(gse129166)))
@@ -95,16 +95,9 @@ gse129166_ex
 ```{r}
 start = 1
 stop = 100
-boxplot(gse36074_ex[start:stop])
+boxplot(gse36059_ex[start:stop])
 boxplot(gse48581_ex[start:stop])
 boxplot(gse129166_ex[start:stop])
-```
-
-
-
-
-```{r}
-merge(gse36074_ex, gse48581_ex, all = TRUE)
 ```
 
 

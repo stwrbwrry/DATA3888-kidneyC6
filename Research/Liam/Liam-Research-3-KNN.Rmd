@@ -1,0 +1,327 @@
+---
+title: "KNN"
+output: html_notebook
+---
+
+This notebook contains research on using KNN for the Kidney Graft Genetics Project to predict graft survival.
+
+```{r}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP) #devtools::install_github("sydneybiox/CPOP") #Will take a while to download and requires user input in console
+library(matrixStats)
+```
+
+```{r}
+gse36059 = getGEO("GSE36059")[[1]]
+gse48581 = getGEO("GSE48581")[[1]]
+gse129166 = getGEO("GSE129166")[[1]]
+```
+
+
+
+```{r}
+gse36059_f = fData(gse36059)
+gse36059_f
+gse48581_f = fData(gse48581)
+gse48581_f
+gse129166_f = fData(gse129166)
+gse129166_f
+```
+
+```{r}
+gse36059_p = pData(gse36059)
+gse36059_p
+gse48581_p = pData(gse48581)
+gse48581_p
+gse129166_p = pData(gse129166)
+gse129166_p
+```
+```{r}
+#Remove Nephrectomy outcomes
+gse36059_p = gse36059_p[!(gse36059_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
+
+gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy"),]
+```
+
+
+```{r}
+#Encodes stable as 0 and rejecting as 1
+gse36059_p$diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+```
+
+
+```{r}
+#Encodes stable as 0, ABMR as 1, TCMR as 2, Mixed as 3
+gse36059_p$exact_diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36059_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36059_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1.1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+
+gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
+```
+
+
+```{r}
+gse36059_p
+gse48581_p
+gse129166_p
+```
+Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR (anti-donor antibody-mediated rejection), and MIXED. Also has nephrectomy.
+
+
+```{r}
+gse36059_ex = data.frame(t(exprs(gse36059)))
+gse36059_ex
+gse48581_ex = data.frame(t(exprs(gse48581)))
+gse48581_ex
+gse129166_ex = data.frame(t(exprs(gse129166)))
+gse129166_ex
+```
+```{r}
+start = 1
+stop = 100
+boxplot(gse36059_ex[start:stop])
+boxplot(gse48581_ex[start:stop])
+boxplot(gse129166_ex[start:stop])
+```
+
+```{r}
+#TODO create pairwise dif function
+pairwise = function(GSE, top_x, transform_type) {
+  exp_GSE = (exprs(GSE))
+  Variance = rowVars(as.matrix(exp_GSE))
+  Variance = as.data.frame(Variance)
+  exp_GSE = as.data.frame(exp_GSE)
+  exp_GSE = cbind(exp_GSE, variance = Variance)
+  exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
+  exp_GSE = subset(exp_GSE, select = -c(Variance))
+  row_names_exp_GSE = rownames(exp_GSE)
+  
+  z = exp_GSE
+  
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z = z + 1
+    z = log(z)
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  
+  return(z)
+  
+}
+
+pairwise(gse36059, 70, "Pair")
+```
+
+
+```{r}
+#CPOP data
+
+## keeping only the 100 most variable genes in my data frame 
+exp_GSE36059 = (exprs(gse36059))
+Variance = rowVars(as.matrix(exp_GSE36059))
+Variance = as.data.frame(Variance)
+exp_GSE36059 = as.data.frame(exp_GSE36059)
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+row_names_exp_GSE36074 = rownames(exp_GSE36059)
+
+exp_GSE48581 = (exprs(gse48581))
+Variance = rowVars(as.matrix(exp_GSE48581))
+Variance = as.data.frame(Variance)
+exp_GSE48581 = as.data.frame(exp_GSE48581)
+exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
+exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
+exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
+row_names_exp_GSE48581 = rownames(exp_GSE48581)
+
+exp_GSE129166 = (exprs(gse129166))
+Variance = rowVars(as.matrix(exp_GSE129166))
+Variance = as.data.frame(Variance)
+exp_GSE129166 = as.data.frame(exp_GSE129166)
+exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
+exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
+exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
+row_names_exp_GSE129166 = rownames(exp_GSE129166)
+```
+
+
+```{r}
+# Takes overlap
+intersection = intersect(row_names_exp_GSE34748, row_names_exp_GSE46474)
+intersection = intersect(intersection, row_names_exp_GSE129166)
+
+exp_GSE34748 = as.data.frame(t(as.matrix(exp_GSE34748)))
+exp_GSE34748 = subset(exp_GSE34748, select = c(intersection))
+
+exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474)))
+exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
+
+exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
+exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
+
+GSE34748_id <- data.frame("Dataset" = rep("GSE34748",nrow(exp_GSE34748)))
+GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
+GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
+
+z1 = exp_GSE34748 %>% as.matrix()
+z2 = exp_GSE46474 %>% as.matrix()
+z3 = exp_GSE129166 %>% as.matrix()
+
+## arcsine transformation
+
+exp_GSE34748_arc <- exp_GSE34748
+exp_GSE34748_arc = exp_GSE34748_arc / max(exp_GSE34748_arc)
+exp_GSE34748_arc = asin(sqrt(exp_GSE34748_arc))
+
+exp_GSE46474_arc <- exp_GSE46474
+exp_GSE46474_arc = exp_GSE46474_arc / max(exp_GSE46474_arc)
+exp_GSE46474_arc = asin(sqrt(exp_GSE46474_arc))
+
+exp_GSE129166_arc <- exp_GSE129166
+exp_GSE129166_arc = exp_GSE129166_arc / max(exp_GSE129166_arc)
+exp_GSE129166_arc = asin(sqrt(exp_GSE129166_arc))
+
+z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
+z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
+z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
+
+
+z1_arc = pairwise_col_diff(exp_GSE34748_arc) %>% as.matrix()
+z2_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
+z3_arc = pairwise_col_diff(exp_GSE129166_arc) %>% as.matrix()
+
+## log transform
+
+exp_GSE34748_log <- exp_GSE34748
+exp_GSE34748_log = exp_GSE34748_log + 1
+exp_GSE34748_log = log(exp_GSE34748_log)
+
+exp_GSE46474_log <- exp_GSE46474
+exp_GSE46474_log = exp_GSE46474_log + 1
+exp_GSE46474_log = log(exp_GSE46474_log)
+
+exp_GSE129166_log <- exp_GSE129166
+exp_GSE129166_log = exp_GSE129166_log + 1
+exp_GSE129166_log = log(exp_GSE129166_log)
+
+z1_log = pairwise_col_diff(exp_GSE34748_log) %>% as.matrix()
+z2_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
+z3_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
+
+
+```
+
+## pre transformation plot
+```{r}
+box11 = cbind(boxplot_tbl(z1, index = 1), GSE34748_id)
+box22 = cbind(boxplot_tbl(z2, index = 1), GSE46474_id)
+box33 = cbind(boxplot_tbl(z3, index = 1), GSE129166_id)
+box4 = rbind(box11, box22, box33)
+
+expressionplot <-
+ggplot(data = box4, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.title.x=element_blank()) +
+  theme(axis.title.y=element_blank()) +
+  ylim(0,15) + 
+  theme(legend.position="bottom") +
+  theme(legend.title = element_blank()) +
+  labs(title = "Raw Data") +
+  theme(plot.title = element_text(size=10))
+
+expressionplot
+```
+
+## Boxplot to visualise if the arc transformations were good
+```{r}
+box1_arc = cbind(boxplot_tbl(z1_arc, index = 1), GSE34748_id)
+box2_arc = cbind(boxplot_tbl(z2_arc, index = 1), GSE46474_id)
+box3_arc = cbind(boxplot_tbl(z3_arc, index = 1), GSE129166_id)
+box4_arc = rbind(box1_arc, box2_arc, box3_arc)
+
+arcplot <-
+ggplot(data = box4_arc, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  xlab("Samples") +
+  theme(axis.title.y=element_blank()) +
+  labs(title = "Arcsine transformation + pairwise difference") +
+  theme(plot.title = element_text(size=10))
+
+arcplot
+```
+
+## boxplot to see if the log transformation was good
+```{r}
+box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE34748_id)
+box2_log = cbind(boxplot_tbl(z2_log, index = 1), GSE46474_id)
+box3_log = cbind(boxplot_tbl(z3_log, index = 1), GSE129166_id)
+box4_log = rbind(box1_log, box2_log, box3_log)
+
+logplot <-
+ggplot(data = box4_log, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  xlab("Samples") +
+  theme(axis.title.y=element_blank()) +
+  labs(title = "Log transformation + pairwise difference") +
+  theme(plot.title = element_text(size=10))
+
+logplot
+```
+## getting the results vectors 
+```{r}
+pData(GSE46474)
+pData(GSE129166) #is there rejection and stable
+pData(GSE34748) #no reject or stable
+
+
+
+### GSE36059
+### GSE48581
+# these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
+```

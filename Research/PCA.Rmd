@@ -1,0 +1,112 @@
+---
+title: "PCA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load
+
+```{r, include=FALSE}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+```
+
+### Using Liam-Research-2
+
+```{r}
+gse36059 = getGEO("GSE36059")[[1]]
+gse48581 = getGEO("GSE48581")[[1]]
+gse129166 = getGEO("GSE129166")[[1]]
+```
+
+```{r}
+gse36074_f = fData(gse36059)
+gse36074_f = fData(gse48581)
+gse129166_f = fData(gse129166)
+```
+
+```{r}
+gse36074_p = pData(gse36059)
+gse48581_p = pData(gse48581)
+gse129166_p = pData(gse129166)
+```
+
+```{r}
+#Remove Nephrectomy outcomes
+gse36074_p = gse36074_p[!(gse36074_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
+
+gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy"),]
+```
+
+
+```{r}
+#Encodes stable as 0 and rejecting as 1
+gse36074_p$diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+```
+
+
+```{r}
+#Encodes stable as 0, ABMR as 1, TCMR as 2, Mixed as 3
+gse36074_p$exact_diagnosis = ifelse(gse36074_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36074_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36074_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+
+gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
+
+```
+
+Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR (anti-donor antibody-mediated rejection), and MIXED. Also has nephrectomy.
+
+```{r}
+gse36074_ex = data.frame(t(exprs(gse36059)))
+gse48581_ex = data.frame(t(exprs(gse48581)))
+gse129166_ex = data.frame(t(exprs(gse129166)))
+```
+
+## PCA
+
+```{r gse48581}
+gse48581_pca = prcomp(gse48581_ex)
+df_pca <- data.frame(gse48581_pca$x, y=factor(gse48581_p$diagnosis))
+# df_pca$y <- factor(y)
+p = ggplot(df_pca, aes(x = PC1, y = PC2, color = y)) + geom_point() + theme_bw()
+ggplotly(p)
+```
+
+Select a set of proteins: input$selectGenes
+
+PCA plot on selected proteins
+
+```{r}
+selectGenes <- c("X1007_s_at", "X1053_at")
+gse48581_pca = prcomp(gse48581_ex[,names(gse48581_ex) %in% selectGenes])
+df_pca <- data.frame(gse48581_pca$x, y=factor(gse48581_p$diagnosis))
+# df_pca$y <- factor(y)
+p = ggplot(df_pca, aes(x = PC1, y = PC2, color = y)) + geom_point() + theme_bw()
+ggplotly(p)
+```
+
+
