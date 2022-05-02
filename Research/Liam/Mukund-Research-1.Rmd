@@ -28,7 +28,7 @@ library(matrixStats)
 
 ```{r}
 geo_name_list = c("GSE129166", "GSE34748", "GSE51675", "GSE15296", "GSE46474", "GSE50084", "GSE36059", "GSE48581")
-geo_list = c(getGEO(filename="Data/GSE129166_series_matrix.txt.gz"), getGEO(filename="Data/GSE34748_series_matrix.txt.gz"), getGEO(filename="Data/GSE51675_series_matrix.txt.gz"), getGEO(filename="Data/GSE15296_series_matrix.txt.gz"), getGEO(filename="Data/GSE46474_series_matrix.txt.gz"), getGEO(filename="Data/GSE50084_series_matrix.txt.gz"), getGEO(filename="Data/GSE36059_series_matrix.txt.gz"), getGEO(filename="Data/GSE48581_series_matrix.txt.gz"))
+geo_list = c(getGEO(filename="Data/GSE129166_series_matrix.txt.gz"), getGEO(filename="Data/GSE34748_series_matrix.txt.gz"), getGEO(filename="Data/GSE51675_series_matrix.txt.gz"), getGEO(filename="Data/GSE15296_series_matrix.txt.gz"), getGEO(filename="Data/GSE46474_series_matrix.txt.gz"), getGEO(filename="Data/GSE50084_series_matrix.txt.gz"), getGEO("GSE36059"), getGEO("GSE48581"))
 
 ### GSE36059
 ### GSE48581
