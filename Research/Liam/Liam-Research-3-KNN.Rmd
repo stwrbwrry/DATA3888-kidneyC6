@@ -105,6 +105,38 @@ boxplot(gse129166_ex[start:stop])
 
 ```{r}
 #TODO create pairwise dif function
+pairwise = function(GSE, top_x, transform_type) {
+  exp_GSE = (exprs(GSE))
+  Variance = rowVars(as.matrix(exp_GSE))
+  Variance = as.data.frame(Variance)
+  exp_GSE = as.data.frame(exp_GSE)
+  exp_GSE = cbind(exp_GSE, variance = Variance)
+  exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
+  exp_GSE = subset(exp_GSE, select = -c(Variance))
+  row_names_exp_GSE = rownames(exp_GSE)
+  
+  z = exp_GSE
+  
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z = z + 1
+    z = log(z)
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  
+  return(z)
+  
+}
+
+pairwise(gse36059, 70, "Pair")
 ```
 
 
