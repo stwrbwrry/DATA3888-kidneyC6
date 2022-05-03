@@ -105,7 +105,7 @@ boxplot(gse129166_ex[start:stop])
 
 ```{r}
 #TODO 
-pairwise_preprocess = function(GSE, top_x, transform_type) {
+pairwise_preprocess = function(GSE, top_x) {
   exp_GSE = (exprs(GSE))
   Variance = rowVars(as.matrix(exp_GSE))
   Variance = as.data.frame(Variance)
@@ -118,7 +118,7 @@ pairwise_preprocess = function(GSE, top_x, transform_type) {
   return(exp_GSE)
 }
 
-pairwise = function(exp_GSE, intersection) {
+pairwise = function(exp_GSE, intersection, transform_type) {
   
   exp_GSE = as.data.frame(t(as.matrix(exp_GSE)))
   exp_GSE = subset(exp_GSE, select = c(intersection))
@@ -144,13 +144,17 @@ pairwise = function(exp_GSE, intersection) {
   
 }
 
-z1 = pairwise_preprocess(gse36059, 2000, "Pair")
-z2 = pairwise_preprocess(gse48581, 2000, "Pair")
+z1 = pairwise_preprocess(gse36059, 2000)
+z2 = pairwise_preprocess(gse48581, 2000)
 
-intersection = intersect(row_names(z1), row_names(z2))
+intersection = intersect(rownames(z1), rownames(z2))
 
+z1_pair = pairwise(z1, intersection, "Log")
+z2_pair = pairwise(z2, intersection, "Log")
 
-
+```
+```{r}
+boxplot(z1_pair[1:50,], ylim = c(0, 4))
 ```
 
 
