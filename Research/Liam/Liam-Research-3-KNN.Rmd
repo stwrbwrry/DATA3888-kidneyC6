@@ -104,8 +104,8 @@ boxplot(gse129166_ex[start:stop])
 ```
 
 ```{r}
-#TODO create pairwise dif function
-pairwise = function(GSE, top_x, transform_type) {
+#TODO 
+pairwise_preprocess = function(GSE, top_x) {
   exp_GSE = (exprs(GSE))
   Variance = rowVars(as.matrix(exp_GSE))
   Variance = as.data.frame(Variance)
@@ -114,6 +114,14 @@ pairwise = function(GSE, top_x, transform_type) {
   exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
   exp_GSE = subset(exp_GSE, select = -c(Variance))
   row_names_exp_GSE = rownames(exp_GSE)
+  
+  return(exp_GSE)
+}
+
+pairwise = function(exp_GSE, intersection, transform_type) {
+  
+  exp_GSE = as.data.frame(t(as.matrix(exp_GSE)))
+  exp_GSE = subset(exp_GSE, select = c(intersection))
   
   z = exp_GSE
   
@@ -136,7 +144,28 @@ pairwise = function(GSE, top_x, transform_type) {
   
 }
 
-pairwise(gse36059, 70, "Pair")
+z1 = pairwise_preprocess(gse36059, 2000)
+z2 = pairwise_preprocess(gse48581, 2000)
+
+intersection = intersect(rownames(z1), rownames(z2))
+
+z1_pair = pairwise(z1, intersection, "Log")
+z2_pair = pairwise(z2, intersection, "Log")
+
+```
+```{r}
+boxplot(z1_pair[1:50,], ylim = c(0, 4))
+```
+
+
+
+```{r}
+# TODO: Export processed code for all datasets
+
+```
+
+```{r}
+# TODO: Find overlap in features selected in KNN for the different datasets
 ```
 
 
@@ -171,7 +200,6 @@ exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
 exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
 row_names_exp_GSE129166 = rownames(exp_GSE129166)
 ```
-
 
 ```{r}
 # Takes overlap
