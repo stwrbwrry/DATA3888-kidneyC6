@@ -114,10 +114,10 @@ Also no clinical data
 ## Mukund CPOP analysis 
 ```{r}
 #CPOP data
-
+GSE46474 = getGEO("GSE46474")[[1]]
 GSE36059 = getGEO("GSE36059")[[1]]
 GSE48581 = getGEO("GSE48581")[[1]]
-GSE129166 = getGEO("GSE129166")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]]
 #GSE15296 = getGEO("GSE15296")[[1]]
 ```
 
@@ -128,9 +128,9 @@ exp_GSE36059 = (exprs(GSE36059))
 Variance = rowVars(as.matrix(exp_GSE36059))
 Variance = as.data.frame(Variance)
 exp_GSE36059 = as.data.frame(exp_GSE36059)
-exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
-exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # column bind exp_GSE36059
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) 
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) 
 row_names_exp_GSE36059 = rownames(exp_GSE36059)
 
 
@@ -188,9 +188,9 @@ exp_GSE48581_arc <- exp_GSE48581
 exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
 exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
 
-z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
-z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
-z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
+z1 = z1 %>% as.matrix()
+z2 = z2 %>% as.matrix()
+z3 = z3 %>% as.matrix()
 
 
 z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
@@ -323,7 +323,6 @@ gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr
 ## running CPOP
 ```{r}
 #CPOP model
-
 
 counter = 0
 
