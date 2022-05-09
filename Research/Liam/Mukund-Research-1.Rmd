@@ -114,10 +114,10 @@ Also no clinical data
 ## Mukund CPOP analysis 
 ```{r}
 #CPOP data
-
+GSE46474 = getGEO("GSE46474")[[1]]
 GSE36059 = getGEO("GSE36059")[[1]]
 GSE48581 = getGEO("GSE48581")[[1]]
-GSE129166 = getGEO("GSE129166")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]]
 #GSE15296 = getGEO("GSE15296")[[1]]
 ```
 
@@ -128,9 +128,9 @@ exp_GSE36059 = (exprs(GSE36059))
 Variance = rowVars(as.matrix(exp_GSE36059))
 Variance = as.data.frame(Variance)
 exp_GSE36059 = as.data.frame(exp_GSE36059)
-exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
-exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # column bind exp_GSE36059
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) 
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) 
 row_names_exp_GSE36059 = rownames(exp_GSE36059)
 
 
@@ -188,9 +188,9 @@ exp_GSE48581_arc <- exp_GSE48581
 exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
 exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
 
-z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
-z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
-z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
+z1 = z1 %>% as.matrix()
+z2 = z2 %>% as.matrix()
+z3 = z3 %>% as.matrix()
 
 
 z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
@@ -292,7 +292,7 @@ ggplot(data = box4_log, aes(x = object, y = means)) +
 
 logplot
 ```
-## getting the results vectors 
+## getting the results vectors for only reject or stable
 ```{r}
 p_GSE46474 = pData(GSE46474)
 p_GSE48581 = pData(GSE48581) 
@@ -310,11 +310,19 @@ y3 = as.factor(p_GSE46474$diagnosis)
 # these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
 ```
 
+## getting results vector for more 
+```{r}
+gse36059_p$exact_diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36059_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36059_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1.1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+
+gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
+```
+
 
 ## running CPOP
 ```{r}
 #CPOP model
-
 
 counter = 0
 
@@ -438,7 +446,7 @@ cv_acc_alphas_z2
 ## make this balanced acc
 ```
 
-
+#pre-lim work to make feature graph 
 ```{r}
 results = cpopresult$coef_tbl
 results$average = (results$coef1 +results$coef2)/2
@@ -450,10 +458,10 @@ coef = results$coef_name
 results$coef_name = sub(".*\\.", "", coef)
 
 plot_lratio_network(results$coef_name, type = "visNetwork")
-
+results
 ```
 
-
+#making the final feature graph with colours and sizing. Make colours better + add explanation about what the colour + size means. Change the size of the edges! 
 ```{r}
 #playing with network
 results =
@@ -464,14 +472,17 @@ results %>%
     ))
 
 names = data.frame(feature1 = rep("",20),
-                   feature2 = rep("",20))
+                   feature2 = rep("",20),
+                   coef_size = abs(results$average))
+names
 
-names$feature1 = sub("\\..*", "", coef)
-names$feature2 = sub(".*--", "", coef)
+names$feature1 = sub("\\..*", "", coef) #getting the first node from the coef-name vector of the results df
+names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
 names$color = results$color
 
 
 network = plot_lratio_network(coef, type = "visNetwork")
+network
 names_uniq = unique(c(names$feature1, names$feature2))
 names_uniq
 numbers = names
@@ -484,6 +495,14 @@ for (a in 1:nrow(numbers)) {
   }
 }
 
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature1[a] == names_uniq[i]) {
+      numbers$feature1[a] = i
+    }
+  }
+}
+numbers
 clr = vector()
 for (a in 1:length(names_uniq)) {
   for (i in 1:nrow(names)) {
@@ -492,15 +511,14 @@ for (a in 1:length(names_uniq)) {
     }
   }
 }
-edges = data.frame(from = numbers$feature1, to = numbers$feature2)
+clr
+names
+edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
 nodes = data.frame(id = c(1:35), 
                    label = names_uniq, 
-                   value = c(1:35),
-                   colour = clr)
+                   color = clr)
 
 visNetwork(nodes, edges, height = "500px", width = "100%")
-
-
 
 
 

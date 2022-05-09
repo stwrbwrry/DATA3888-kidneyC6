@@ -1,0 +1,326 @@
+---
+title: "SWM"
+output: html_document
+date: '2022-05-01'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+```
+
+```{r}
+gse36059 = getGEO("GSE36059")[[1]]
+gse48581 = getGEO("GSE48581")[[1]]
+gse129166 = getGEO("GSE129166")[[1]]
+```
+
+```{r}
+gse36059_f = fData(gse36059)
+gse348581_f = fData(gse48581)
+gse129166_f = fData(gse129166)
+```
+
+```{r}
+gse36059_p = pData(gse36059)
+gse48581_p = pData(gse48581)
+gse129166_p = pData(gse129166)
+```
+
+```{r}
+gse36059_ex = data.frame(t(exprs(gse36059)))
+gse48581_ex = data.frame(t(exprs(gse48581)))
+gse129166_ex = data.frame(t(exprs(gse129166)))
+```
+
+```{r}
+exprs_gse36059 = exprs(gse36059)
+exprs_gse48581 = exprs(gse48581)
+exprs_gse129166 = exprs(gse129166)
+```
+
+```{r}
+# Get rows with a Nephrectomy outcome
+
+neph_rows1 = which(gse36059_p$characteristics_ch1=="diagnosis: Nephrectomy")
+neph_rows2 = which(gse48581_p$characteristics_ch1.1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy")
+```
+
+```{r}
+# Remove Nephrectomy from data frame
+
+gse36059_ex <- gse36059_ex[-neph_rows1, ]
+gse48581_ex <- gse48581_ex[-neph_rows2, ]
+```
+
+```{r}
+# Remove Nephrectomy from expression data
+
+exprs_gse36059 <- subset(exprs_gse36059, select = -neph_rows1)
+exprs_gse48581 <- subset(exprs_gse48581, select = -neph_rows2)
+```
+
+```{r}
+# Remove Nephrectomy outcomes from pData
+
+gse36059_p = gse36059_p[!(gse36059_p$characteristics_ch1=="diagnosis: Nephrectomy"),]
+
+gse48581_p = gse48581_p[!(gse48581_p$characteristics_ch1.1=="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): nephrectomy"),]
+```
+
+```{r}
+# Encodes stable as 0 and rejecting as 1
+
+gse36059_p$diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+gse48581_p$diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+gse129166_p$diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+```
+
+```{r}
+#Encodes stable as 0, ABMR as 1, TCMR as 2, Mixed as 3
+
+gse36059_p$exact_diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36059_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36059_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
+
+gse48581_p$exact_diagnosis = ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, ifelse(gse48581_p$characteristics_ch1.1 =="diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): ABMR", 1, ifelse(gse48581_p$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): TCMR", 2, 3)))
+
+gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 != "abmr (no: 0_Yes:1): 0"), 3, ifelse((gse129166_p$characteristics_ch1.1 != "tcmr (no: 0_borderline:1_TCMR:2): 0") & (gse129166_p$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 2, 1)))
+```
+
+Main outcomes are non-rejecting, TCMR (acute T-cell–mediated rejection), ABMR (anti-donor antibody-mediated rejection), and MIXED.
+
+```{r}
+# Box plots of what data looks like originally
+start = 1
+stop = 100
+
+boxplot(gse36059_ex[start:stop])
+boxplot(gse48581_ex[start:stop])
+boxplot(gse129166_ex[start:stop])
+```
+
+```{r}
+pairwise_preprocess = function(exp_GSE, top_x) {
+  Variance = rowVars(as.matrix(exp_GSE))
+  Variance = as.data.frame(Variance)
+  exp_GSE = as.data.frame(exp_GSE)
+  exp_GSE = cbind(exp_GSE, variance = Variance)
+  exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
+  exp_GSE = subset(exp_GSE, select = -c(Variance))
+  row_names_exp_GSE = rownames(exp_GSE)
+  
+  return(exp_GSE)
+}
+```
+
+```{r}
+pairwise = function(exp_GSE, intersection, transform_type) {
+  
+  exp_GSE = as.data.frame(t(as.matrix(exp_GSE)))
+  exp_GSE = subset(exp_GSE, select = c(intersection))
+  
+  z = exp_GSE
+  
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z = z + 1
+    z = log(z)
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  
+  return(z)
+  
+}
+```
+
+
+```{r}
+z1 = pairwise_preprocess(exprs_gse36059, 2000)
+z2 = pairwise_preprocess(exprs_gse48581, 2000)
+
+intersection = intersect(rownames(z1), rownames(z2))
+
+z1_pair = pairwise(z1, intersection, "Log")
+z2_pair = pairwise(z2, intersection, "Log")
+```
+
+```{r}
+# Boxplot to see transformed data
+
+boxplot(z1_pair[1:50,], ylim = c(0, 4))
+boxplot(z2_pair[1:50,], ylim = c(0, 4))
+```
+
+```{r}
+X1 = z1_pair
+y1 = gse36059_p$diagnosis
+```
+
+```{r}
+## SVM
+
+cvK = 5 # Number of CV folds
+cv_acc_svm = cv_50acc5_svm = c()
+
+for (i in 1:5) {
+  
+  cvSets = cvTools::cvFolds(nrow(X1), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X1[test_id, ]
+      X_train = X1[-test_id, ]
+      y_test = y1[test_id]
+      y_train = y1[-test_id]
+      
+      #SVM
+      svm_res <- e1071::svm(x = X_train, y = as.factor(y_train))
+      fit <- predict(svm_res, X_test)
+      cv_acc_svm[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_svm <- append(cv_50acc5_svm, mean(cv_acc_svm))
+}
+```
+
+```{r}
+boxplot(cv_50acc5_svm, ylab="CV Accuracy")
+```
+
+```{r}
+X2 = z1_pair
+y2 = gse36059_p$exact_diagnosis
+```
+
+```{r}
+## SVM
+
+cvK = 5 # Number of CV folds
+cv_acc_svm = cv_50acc5_svm = c()
+
+for (i in 1:5) {
+  
+  cvSets = cvTools::cvFolds(nrow(X2), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X2[test_id, ]
+      X_train = X2[-test_id, ]
+      y_test = y2[test_id]
+      y_train = y2[-test_id]
+      
+      #SVM
+      svm_res <- e1071::svm(x = X_train, y = as.factor(y_train))
+      fit <- predict(svm_res, X_test)
+      cv_acc_svm[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_svm <- append(cv_50acc5_svm, mean(cv_acc_svm))
+}
+```
+
+```{r}
+boxplot(cv_50acc5_svm, ylab="CV Accuracy")
+```
+
+```{r}
+X3 = z2_pair
+y3 = gse48581_p$diagnosis
+```
+
+```{r}
+## SVM
+
+cvK = 5 # Number of CV folds
+cv_acc_svm = cv_50acc5_svm = c()
+
+for (i in 1:5) {
+  
+  cvSets = cvTools::cvFolds(nrow(X3), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X3[test_id, ]
+      X_train = X3[-test_id, ]
+      y_test = y3[test_id]
+      y_train = y3[-test_id]
+      
+      #SVM
+      svm_res <- e1071::svm(x = X_train, y = as.factor(y_train))
+      fit <- predict(svm_res, X_test)
+      cv_acc_svm[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_svm <- append(cv_50acc5_svm, mean(cv_acc_svm))
+}
+```
+
+```{r}
+boxplot(cv_50acc5_svm, ylab="CV Accuracy")
+```
+
+```{r}
+X4 = z2_pair
+y4 = gse48581_p$exact_diagnosis
+```
+
+```{r}
+## SVM
+
+cvK = 5 # Number of CV folds
+cv_acc_svm = cv_50acc5_svm = c()
+
+for (i in 1:5) {
+  
+  cvSets = cvTools::cvFolds(nrow(X3), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X4[test_id, ]
+      X_train = X4[-test_id, ]
+      y_test = y4[test_id]
+      y_train = y4[-test_id]
+      
+      #SVM
+      svm_res <- e1071::svm(x = X_train, y = as.factor(y_train))
+      fit <- predict(svm_res, X_test)
+      cv_acc_svm[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_svm <- append(cv_50acc5_svm, mean(cv_acc_svm))
+}
+```
+
+```{r}
+boxplot(cv_50acc5_svm, ylab="CV Accuracy")
+```
+
