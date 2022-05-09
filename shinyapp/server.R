@@ -27,5 +27,9 @@ shinyServer(function(input, output) {
     paste("Current Slider value: ", input$slider)
   })
   
+  output$fileInput <- renderPrint({
+    str(input$userFile)
+  })
+  
 
 })
