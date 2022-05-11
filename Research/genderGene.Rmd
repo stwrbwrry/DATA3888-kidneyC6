@@ -1,0 +1,28 @@
+---
+title: "clinicalVar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+```
+
+Sex:
+* Gene Symbol: SRY
+* Gene Title: sex determining region Y 
+* Gene ID (ENTREZ_GENE_ID): 6736
+* ID: 207893_at
+* https://www.ncbi.nlm.nih.gov/gene/6736
+Immunological age
+
+```{r}
+gse129166_f %>% filter(ENTREZ_GENE_ID == "6736")
+gse129166_ex[,"X207893_at"]
+
+gse36074_f %>% filter(ENTREZ_GENE_ID == "6736")
+gse36074_ex[,"X207893_at"]
+
+fData(gse48581) %>% filter(ENTREZ_GENE_ID == "6736")
+gse48581_ex[,"X207893_at"]
+```
+
