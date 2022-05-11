@@ -1,10 +1,4 @@
 ---
-title: "R Notebook"
-output:
-  html_document:
-    df_print: paged
----
----
 title: "Liam Research 1"
 output: html_notebook
 ---
@@ -31,7 +25,6 @@ library(scales)
 library(CPOP)
 library(matrixStats)
 library(visNetwork)
-library(dplyr)
 ```
 
 ## Mukund CPOP analysis 
@@ -53,7 +46,19 @@ slotNames(GSKhang)
 
 
 ```{r}
-# TODO: Change probe id to gene and remove duplicates
+gene_names = function(gse) {
+  fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+  idx = which(!duplicated(fData(gse)$`Gene Symbol`) & !is.na(fData(gse)$`Gene Symbol`))
+  gse = gse[idx,]
+  rownames(gse) = fData(gse)$`Gene Symbol`
+  
+  return(gse)
+}
+
+GSE46474 = gene_names(GSE46474)
+GSE36059 = gene_names(GSE36059)
+GSE48581 = gene_names(GSE48581)
 ```
 
 
@@ -296,7 +301,6 @@ y3
 
 
 
-
 ```{r}
 results = cpopresult$coef_tbl
 results$average = (results$coef1 +results$coef2)/2
@@ -309,11 +313,14 @@ results$coef_name = sub(".*\\.", "", coef)
 
 #plot_lratio_network(results$coef_name, type = "visNetwork")
 
+write.csv(results, "results.csv")
 ```
 
 
 ```{r}
 #playing with network
+results = read.csv("results.csv")
+
 results =
 results %>%
   mutate(color = case_when(
@@ -323,16 +330,16 @@ results %>%
 names = data.frame(feature1 = rep("",20),
                    feature2 = rep("",20),
                    coef_size = abs(results$average))
-names
+#names
 names$feature1 = sub("\\..*", "", coef) #getting the first node from the coef-name vector of the results df
 names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
 names$color = results$color
 network = plot_lratio_network(coef, type = "visNetwork")
-network
+#network
 names_uniq = unique(c(names$feature1, names$feature2))
-names_uniq
+#names_uniq
 numbers = names
-numbers
+#numbers
 for (a in 1:nrow(numbers)) {
   for (i in 1:length(names_uniq)) {
     if (numbers$feature2[a] == names_uniq[i]) {
@@ -347,7 +354,7 @@ for (a in 1:nrow(numbers)) {
     }
   }
 }
-numbers
+#numbers
 clr = vector()
 for (a in 1:length(names_uniq)) {
   for (i in 1:nrow(names)) {
@@ -356,19 +363,39 @@ for (a in 1:length(names_uniq)) {
     }
   }
 }
-clr
-names
+#clr
 edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
 nodes = data.frame(id = c(1:length(names_uniq)), 
                    label = names_uniq, 
                    color = clr,
-                   title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=RFC2"> Click Here </a>'))
+                   title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',names_uniq,'">',names_uniq,'</a>'))
+#nodes
 visNetwork(nodes, edges, height = "500px", width = "100%")
 
 ```
 ```
 
-
-
-
-
+```{r}
+## Random CPOP code while I try debug earlier chunk
+    c = is.na(prediction_z3$cpop_model_avg_class)
+    na_index1 = which(c %in% c(TRUE))
+    
+    if (length(na_index1) == 0) {
+      bal_acc <- yardstick::bal_accuracy_vec(
+      truth = y3,
+      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
+    }
+    else {
+      bal_acc <- yardstick::bal_accuracy_vec(
+      truth = y3,
+      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
+    }
+    
+    bal_acc_y3_test[counter2] = bal_acc
+    features_test[counter2] = length(cpopresult$features)
+  }
+  
+  y3_alpha_accuracy_list[[counter]] = bal_acc_y3_test
+  features_list[[counter]] = features_test
+  print(y3_alpha_accuracy_list)
+```
