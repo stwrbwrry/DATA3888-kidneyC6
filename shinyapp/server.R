@@ -8,6 +8,10 @@
 #
 
 library(shiny)
+library(GEOquery) 
+
+# set upload size
+options(shiny.maxRequestSize=150*1024^2)
 
 # Define server logic
 shinyServer(function(input, output) {
@@ -27,8 +31,12 @@ shinyServer(function(input, output) {
     paste("Current Slider value: ", input$slider)
   })
   
+  
   output$fileInput <- renderPrint({
-    str(input$userFile)
+    GSEInput = getGEO(filename=input$userFile$datapath)
+    
+    
+    return(slotNames(inputFile))
   })
   
 
