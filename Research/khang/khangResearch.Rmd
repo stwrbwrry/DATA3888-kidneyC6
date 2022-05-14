@@ -35,11 +35,12 @@ GSE46474 = getGEO("GSE46474")[[1]]
 GSE36059 = getGEO("GSE36059")[[1]]
 GSE48581 = getGEO("GSE48581")[[1]]
 
+
 # The below is what the user uploads
 GSE129166 = getGEO("GSE129166")[[1]]
 
-# GSKhang = getGEO(filename="../Liam/Data/GSE129166_series_matrix.txt.gz")
-# slotNames(GSKhang)
+GSKhang = getGEO(filename="../Liam/Data/GSE129166_series_matrix.txt.gz")
+slotNames(GSKhang)
 # The below is not important
 #GSE15296 = getGEO("GSE15296")[[1]]
 ```

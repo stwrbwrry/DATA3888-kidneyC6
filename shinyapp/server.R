@@ -33,9 +33,7 @@ shinyServer(function(input, output) {
   
   
   output$fileInput <- renderPrint({
-    GSEInput = getGEO(filename=input$userFile$datapath)
-    
-    
+    inputFile = getGEO(filename=input$userFile$datapath)
     return(slotNames(inputFile))
   })
   
