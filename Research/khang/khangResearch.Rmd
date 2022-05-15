@@ -546,8 +546,13 @@ userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
 # dim(userExpression)
 # length(userBinaryOutcomes)
 ncol(userExpression)
-ncol(userFile[diagnosisIndex, ])
-ncol()
+ncol(userBinaryOutcomes)
+ncol(z1)
+ncol(y1)
+ncol(z2)
+ncol(y2)
+
+
 feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
 
 head(userExpression)
@@ -558,7 +563,7 @@ class(y1)
 
 
 
-z2
+z0
 # userFile <- read_csv('../Liam/Data/userUploadData.csv')
 
 # rownames(userFile) <- userFile[[1]]
