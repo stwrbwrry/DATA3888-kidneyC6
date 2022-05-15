@@ -37,9 +37,9 @@ GSE48581 = getGEO("GSE48581")[[1]]
 
 
 # The below is what the user uploads
-# GSE129166 = getGEO("GSE129166")[[1]]
+GSE129166 = getGEO("GSE129166")[[1]]
 # 
-# GSKhang = getGEO(filename="../Liam/Data/GSE129166_series_matrix.txt.gz")
+# GSKhang = getGEO(")
 # slotNames(GSKhang)
 # The below is not important
 #GSE15296 = getGEO("GSE15296")[[1]]
@@ -50,6 +50,8 @@ GSE48581 = getGEO("GSE48581")[[1]]
 ## Khang's work 
 
 userFile <- read_csv('../Liam/Data/userUploadData.csv')
+
+as.vector(userFile[,'...1'])
 
 
 
@@ -77,18 +79,15 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv')
 
 
 ```{r}
-# exp_GSE129166 = as.data.frame(exprs(GSE129166))
-# # 0 is stable, 1 is rejection
-# myP <- pData(GSE129166)
-# myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
-# myP["GSM3701701", "diagnosis"]
-# 
-# exp_GSE129166
-# 
-# output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
+exp_GSE129166 = as.data.frame(exprs(GSE129166))
+# 0 is stable, 1 is rejection
+myP <- pData(GSE129166)
+myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
+
+output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
 
 
-# write.csv(output,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
+write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
 
 
 
