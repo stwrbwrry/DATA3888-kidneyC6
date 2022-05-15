@@ -50,25 +50,29 @@ GSE48581 = getGEO("GSE48581")[[1]]
 ## Khang's work 
 
 userFile <- read_csv('../Liam/Data/userUploadData.csv')
+
+
+
 # 
 # set.seed(3888)
-# 
+# # 
 # cname <- tail(colnames(u),-1)
-# 
+# # 
 # amountOFErrors <- 10000
-# 
+# # 
 # errors <- c(NA,"NA", "na","Na", "nA", "-","rubbish","brah", "/", "", "  ", "    ", "", "-99", -99,0)
-# 
+# # 
 # for (val in cname){
 #   curVec <- u[[val]]
-#   ind <-  which(curVec %in% sample(curVec,amountOFErrors))
-#   u[[val]][ind] <- sample(errors,1)
-# 
+#    ind <-  which(curVec %in% sample(curVec,amountOFErrors))
+#    u[[val]][ind] <- sample(errors,1)
 # }
-
-# write.csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv", row.names = TRUE)
+# 
+#  write.csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv", row.names = FALSE)
 # class(u)
 
+
+ 
 ```
 
 
@@ -534,7 +538,9 @@ visNetwork(nodes, edges, height = "500px", width = "100%")
 ```{r}
 
 generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
-  return cpop_model(user, inhouse,
+  set.seed()
+  return(cpop_model(user,
+        inhouse,
         userOutcomes,
         inhouseOutcomes,
         w = NULL,
@@ -547,9 +553,12 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
         cpop2_type = "sign",
         cpop2_mag = 1,
         cpop1_method = "normal",
-        intercept = FALSE)
+        intercept = FALSE))
 }
+generateCPOPmodel(z1,y1,z2,y2)
 
+which(unique(userFile[,'...1'])=="outcomes") 
+userFile['outcome',]
 
 
 ```
