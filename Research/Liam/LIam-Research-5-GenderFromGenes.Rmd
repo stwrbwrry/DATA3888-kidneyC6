@@ -1,0 +1,33 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+library(visNetwork)
+```
+
+```{r}
+# TODO: CPOP on gender from GSE46474 (Blood) GSE34748 (Biopsy), see whether the features match existing literature and see whether the model is accurate. Also try ComBat + SVM or KNN
+```
+

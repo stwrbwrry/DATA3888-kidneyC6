@@ -61,6 +61,11 @@ GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
 ```
 
+```{r}
+pData(GSE46474)
+pData(GSE36059)
+pData(GSE48581)
+```
 
 
 ```{r}
@@ -158,6 +163,7 @@ z2_log = exp_GSE48581_log %>% as.matrix()
 
 # View(z1_log)
 ```
+
 
 ## pre transformation plot
 ```{r}
