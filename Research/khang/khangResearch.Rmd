@@ -37,7 +37,7 @@ GSE48581 = getGEO("GSE48581")[[1]]
 
 
 # The below is what the user uploads
-GSE129166 = getGEO("GSE129166")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]]
 # 
 # GSKhang = getGEO(")
 # slotNames(GSKhang)
@@ -78,16 +78,16 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 
 
 ```{r}
-exp_GSE129166 = as.data.frame(exprs(GSE129166))
-# 0 is stable, 1 is rejection
-myP <- pData(GSE129166)
-myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
-
-output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
-
-output
-
-write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
+# exp_GSE129166 = as.data.frame(exprs(GSE129166))
+# # 0 is stable, 1 is rejection
+# myP <- pData(GSE129166)
+# myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
+# 
+# output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
+# 
+# output
+# 
+# write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
 
 # write_csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv")
 
@@ -123,6 +123,8 @@ exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
 exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 2000)
 exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
 row_names_exp_GSE46474 = rownames(exp_GSE46474)
+
+
 
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE48581 = (exprs(GSE48581))
@@ -477,14 +479,14 @@ numbers
 for (a in 1:nrow(numbers)) {
   for (i in 1:length(names_uniq)) {
     if (numbers$feature2[a] == names_uniq[i]) {
-      numbers$feature2[a] = i
+      numbers$feature2[a] = i # gives each feature an id number
     }
   }
 }
 for (a in 1:nrow(numbers)) {
   for (i in 1:length(names_uniq)) {
     if (numbers$feature1[a] == names_uniq[i]) {
-      numbers$feature1[a] = i
+      numbers$feature1[a] = i # gives each feature an id number
     }
   }
 }
@@ -530,17 +532,33 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
         cpop1_method = "normal",
         intercept = FALSE))
 }
-generateCPOPmodel(z1,y1,z2,y2)
+# generateCPOPmodel(z1,y1,z2,y2)
+
+userFile <- data.frame(read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal"))
+
+rownames(userFile) <-  tolower(userFile[[1]])
+userFile <-  userFile[,-1]
+diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
+
+userExpression <- as.matrix(as.data.frame(t(as.matrix(userFile[-diagnosisIndex,])))) 
+userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
+
+# dim(userExpression)
+# length(userBinaryOutcomes)
+ncol(userExpression)
+ncol(userFile[diagnosisIndex, ])
+ncol()
+feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
+
+head(userExpression)
+class(userExpression)
+class(userBinaryOutcomes)
+class(z1)
+class(y1)
 
 
-userFile[[1]] = tolower(userFile[[1]])
-diagnosisIndex <- which(userFile[[1]] == 'diagnosis')
 
-userBinaryOutcomes <- tail(unname(unlist(userFile[diagnosisIndex, ])),-1)
-userExpression <- userFile[-diagnosisIndex,]
-
-feature1 <- 
-
+z2
 # userFile <- read_csv('../Liam/Data/userUploadData.csv')
 
 # rownames(userFile) <- userFile[[1]]
