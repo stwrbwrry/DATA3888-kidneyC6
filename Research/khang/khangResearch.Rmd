@@ -65,7 +65,7 @@ for (val in cname){
 
 }
 
-write.csv(u,"Path to export the DataFrame\\File Name.csv", row.names = TRUE)
+# write.csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv", row.names = TRUE)
 # class(u)
 
 ```
