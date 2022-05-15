@@ -89,20 +89,20 @@ All 3 have perfect overlap so the datasets recommended for use are "GSE129166", 
 ```{r}
 GSE34748 = getGEO(filename="Data/GSE34748_series_matrix.txt.gz")
 clinical_GSE34748 = pData(GSE34748)
-
+clinical_GSE34748
 ```
 Also just doing some checking and some of these don't actually have clinical data
 
 ```{r}
 GSE46474 = getGEO(filename="Data/GSE46474_series_matrix.txt.gz")
 clinical_GSE46474 = pData(GSE46474)
-
+clinical_GSE46474
 ```
 This one has clinical data!!
 ```{r}
 GSE129166 = getGEO(filename="Data/GSE129166_series_matrix.txt.gz")
 clinical_GSE129166 = pData(GSE129166)
-
+clinical_GSE129166
 ```
 Also no clinical data
 ```{r}
@@ -114,27 +114,30 @@ Also no clinical data
 ## Mukund CPOP analysis 
 ```{r}
 #CPOP data
-GSE46474 = getGEO("GSE46474")[[1]]
+
 GSE36059 = getGEO("GSE36059")[[1]]
 GSE48581 = getGEO("GSE48581")[[1]]
-# GSE129166 = getGEO("GSE129166")[[1]]
+GSE129166 = getGEO("GSE129166")[[1]]
 #GSE15296 = getGEO("GSE15296")[[1]]
+
+
 ```
 
 
 ```{r}
 ## keeping only the 100 most variable genes in my data frame 
-exp_GSE36059 = (exprs(GSE36059))
+exp_GSE36059 = (exprs(GSE36059)) ##Biopsy
 Variance = rowVars(as.matrix(exp_GSE36059))
 Variance = as.data.frame(Variance)
 exp_GSE36059 = as.data.frame(exp_GSE36059)
-exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # column bind exp_GSE36059
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) 
-exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) 
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
 row_names_exp_GSE36059 = rownames(exp_GSE36059)
 
 
-exp_GSE46474 = (exprs(GSE46474))
+
+exp_GSE46474 = (exprs(GSE46474)) #blood
 Variance = rowVars(as.matrix(exp_GSE46474))
 Variance = as.data.frame(Variance)
 exp_GSE46474 = as.data.frame(exp_GSE46474)
@@ -144,7 +147,7 @@ exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
 row_names_exp_GSE46474 = rownames(exp_GSE46474)
 
 
-exp_GSE48581 = (exprs(GSE48581))
+exp_GSE48581 = (exprs(GSE48581)) #biopsy
 Variance = rowVars(as.matrix(exp_GSE48581))
 Variance = as.data.frame(Variance)
 exp_GSE48581 = as.data.frame(exp_GSE48581)
@@ -153,9 +156,19 @@ exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
 exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
+#129166
+exp_GSE129166 = (exprs(GSE129166)) #blood
+Variance = rowVars(as.matrix(exp_GSE129166))
+Variance = as.data.frame(Variance)
+exp_GSE129166 = as.data.frame(exp_GSE129166)
+exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
+exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
+exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
+row_names_exp_GSE129166 = rownames(exp_GSE129166)
 
 intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
 intersection = intersect(intersection, row_names_exp_GSE48581)
+intersection = intersect(intersection, row_names_exp_GSE129166)
 
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection))
@@ -166,14 +179,18 @@ exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
 exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
 exp_GSE48581 = subset(exp_GSE48581, select = c(intersection))
 
+exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
+exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
+
 GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059)))
 GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
 GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
+GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
 
 z1 = exp_GSE36059 %>% as.matrix()
 z3 = exp_GSE46474 %>% as.matrix()
 z2 = exp_GSE48581 %>% as.matrix()
-
+z4 = exp_GSE129166 %>% as.matrix()
 ## arcsine transformation
 
 exp_GSE36059_arc <- exp_GSE36059
@@ -188,9 +205,9 @@ exp_GSE48581_arc <- exp_GSE48581
 exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
 exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
 
-z1 = z1 %>% as.matrix()
-z2 = z2 %>% as.matrix()
-z3 = z3 %>% as.matrix()
+z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
+z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
+z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
 
 
 z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
@@ -211,11 +228,16 @@ exp_GSE48581_log <- exp_GSE48581
 exp_GSE48581_log = exp_GSE48581_log + 1
 exp_GSE48581_log = log(exp_GSE48581_log)
 
+exp_GSE129166_log <- exp_GSE129166
+exp_GSE129166_log = exp_GSE129166_log + 1
+exp_GSE129166_log = log(exp_GSE129166_log)
+
 z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
 z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
 z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
+z4_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
 
-View(z1_log)
+
 ```
 
 ## pre transformation plot
@@ -272,7 +294,7 @@ arcplot
 ## boxplot to see if the log transformation was good
 ```{r}
 box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
-box2_log = cbind(boxplot_tbl(z3_log, index = 1), GSE46474_id)
+box2_log = cbind(boxplot_tbl(z4_log, index = 1), GSE129166_id)
 box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
 box4_log = rbind(box1_log, box2_log, box3_log)
 
@@ -323,6 +345,7 @@ gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr
 ## running CPOP
 ```{r}
 #CPOP model
+
 
 counter = 0
 
@@ -521,33 +544,26 @@ nodes = data.frame(id = c(1:35),
 visNetwork(nodes, edges, height = "500px", width = "100%")
 
 
-
+length(names_uniq)
 
 ```
-```
 
+
+Dirty data fixing 
 ```{r}
-## Random CPOP code while I try debug earlier chunk
-    c = is.na(prediction_z3$cpop_model_avg_class)
-    na_index1 = which(c %in% c(TRUE))
-    
-    if (length(na_index1) == 0) {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    else {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    
-    bal_acc_y3_test[counter2] = bal_acc
-    features_test[counter2] = length(cpopresult$features)
+
+## any value that isnt 
+dirty = read.csv("Data/dirtyuser.csv")
+head(dirty)
+dummy_col = dirty$GSM3701704
+for (i in c(1:length(dummy_col))){
+  if (is.na(as.double(dummy_col[i])) == TRUE){
+    dummy_col[i] = NA
   }
-  
-  y3_alpha_accuracy_list[[counter]] = bal_acc_y3_test
-  features_list[[counter]] = features_test
-  print(y3_alpha_accuracy_list)
+  else if (dummy_col[i] < 0){
+    dummy_col[i] = NA
+  }
+}
+
 ```
 
