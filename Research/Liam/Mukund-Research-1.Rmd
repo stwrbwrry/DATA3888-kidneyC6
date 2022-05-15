@@ -12,7 +12,7 @@ library(tsfeatures)
 library(class)
 library(cvTools)
 library(randomForest)
-library(GEOquery) 
+library(GEOquery)
 library(R.utils)
 library(reshape2)
 library(limma)
@@ -43,7 +43,7 @@ for(geo in geo_list) {
   print(names(which(colSums(is.na(fData(geo)))>0)))
 }
 ```
-All gse have a gene symbol column which can be used to match records except for the last one, GSE50084 which has the gene as the 2nd listed element under gene_assignment, and GSE51675 which is missing all of its gene info. 
+All gse have a gene symbol column which can be used to match records except for the last one, GSE50084 which has the gene as the 2nd listed element under gene_assignment, and GSE51675 which is missing all of its gene info.
 
 
 ```{r}
@@ -84,25 +84,25 @@ length(union(fData(geo_list[[1]])["Gene Symbol"], fData(geo_list[[5]])["Gene Sym
 
 All 3 have perfect overlap so the datasets recommended for use are "GSE129166", "GSE34748", and "GSE46474"
 
-(Mukund): Also just thinking, but we probably do want to go through the effort of trying to clean another dataset to match these. firstly for the sake of increased difficulty in the eyes of Jean, but also sometimes without going through the process it can be easy to overlook something in the data cleaning aspect. I am just a bit worried because after talking to some other people they have all told me the data cleaning for this is really hard so not sure if we are actually missing something. 
+(Mukund): Also just thinking, but we probably do want to go through the effort of trying to clean another dataset to match these. firstly for the sake of increased difficulty in the eyes of Jean, but also sometimes without going through the process it can be easy to overlook something in the data cleaning aspect. I am just a bit worried because after talking to some other people they have all told me the data cleaning for this is really hard so not sure if we are actually missing something.
 
 ```{r}
 GSE34748 = getGEO(filename="Data/GSE34748_series_matrix.txt.gz")
 clinical_GSE34748 = pData(GSE34748)
-
+clinical_GSE34748
 ```
 Also just doing some checking and some of these don't actually have clinical data
 
 ```{r}
 GSE46474 = getGEO(filename="Data/GSE46474_series_matrix.txt.gz")
 clinical_GSE46474 = pData(GSE46474)
-
+clinical_GSE46474
 ```
 This one has clinical data!!
 ```{r}
 GSE129166 = getGEO(filename="Data/GSE129166_series_matrix.txt.gz")
 clinical_GSE129166 = pData(GSE129166)
-
+clinical_GSE129166
 ```
 Also no clinical data
 ```{r}
@@ -111,30 +111,33 @@ Also no clinical data
 
 ```
 
-## Mukund CPOP analysis 
+## Mukund CPOP analysis
 ```{r}
 #CPOP data
-GSE46474 = getGEO("GSE46474")[[1]]
+
 GSE36059 = getGEO("GSE36059")[[1]]
 GSE48581 = getGEO("GSE48581")[[1]]
-# GSE129166 = getGEO("GSE129166")[[1]]
+GSE129166 = getGEO("GSE129166")[[1]]
 #GSE15296 = getGEO("GSE15296")[[1]]
+
+
 ```
 
 
 ```{r}
-## keeping only the 100 most variable genes in my data frame 
-exp_GSE36059 = (exprs(GSE36059))
+## keeping only the 100 most variable genes in my data frame
+exp_GSE36059 = (exprs(GSE36059)) ##Biopsy
 Variance = rowVars(as.matrix(exp_GSE36059))
 Variance = as.data.frame(Variance)
 exp_GSE36059 = as.data.frame(exp_GSE36059)
-exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # column bind exp_GSE36059
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) 
-exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) 
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
 row_names_exp_GSE36059 = rownames(exp_GSE36059)
 
 
-exp_GSE46474 = (exprs(GSE46474))
+
+exp_GSE46474 = (exprs(GSE46474)) #blood
 Variance = rowVars(as.matrix(exp_GSE46474))
 Variance = as.data.frame(Variance)
 exp_GSE46474 = as.data.frame(exp_GSE46474)
@@ -144,7 +147,7 @@ exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
 row_names_exp_GSE46474 = rownames(exp_GSE46474)
 
 
-exp_GSE48581 = (exprs(GSE48581))
+exp_GSE48581 = (exprs(GSE48581)) #biopsy
 Variance = rowVars(as.matrix(exp_GSE48581))
 Variance = as.data.frame(Variance)
 exp_GSE48581 = as.data.frame(exp_GSE48581)
@@ -153,9 +156,19 @@ exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
 exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
+#129166
+exp_GSE129166 = (exprs(GSE129166)) #blood
+Variance = rowVars(as.matrix(exp_GSE129166))
+Variance = as.data.frame(Variance)
+exp_GSE129166 = as.data.frame(exp_GSE129166)
+exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
+exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
+exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
+row_names_exp_GSE129166 = rownames(exp_GSE129166)
 
 intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
 intersection = intersect(intersection, row_names_exp_GSE48581)
+intersection = intersect(intersection, row_names_exp_GSE129166)
 
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection))
@@ -166,14 +179,18 @@ exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
 exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
 exp_GSE48581 = subset(exp_GSE48581, select = c(intersection))
 
+exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
+exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
+
 GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059)))
 GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
 GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
+GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
 
 z1 = exp_GSE36059 %>% as.matrix()
 z3 = exp_GSE46474 %>% as.matrix()
 z2 = exp_GSE48581 %>% as.matrix()
-
+z4 = exp_GSE129166 %>% as.matrix()
 ## arcsine transformation
 
 exp_GSE36059_arc <- exp_GSE36059
@@ -188,9 +205,9 @@ exp_GSE48581_arc <- exp_GSE48581
 exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
 exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
 
-z1 = z1 %>% as.matrix()
-z2 = z2 %>% as.matrix()
-z3 = z3 %>% as.matrix()
+z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
+z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
+z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
 
 
 z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
@@ -211,11 +228,16 @@ exp_GSE48581_log <- exp_GSE48581
 exp_GSE48581_log = exp_GSE48581_log + 1
 exp_GSE48581_log = log(exp_GSE48581_log)
 
+exp_GSE129166_log <- exp_GSE129166
+exp_GSE129166_log = exp_GSE129166_log + 1
+exp_GSE129166_log = log(exp_GSE129166_log)
+
 z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
 z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
 z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
+z4_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
 
-# View(z1_log)
+
 ```
 
 ## pre transformation plot
@@ -236,7 +258,7 @@ ggplot(data = box4, aes(x = object, y = means)) +
   theme(axis.text.x = element_blank()) +
   theme(axis.title.x=element_blank()) +
   theme(axis.title.y=element_blank()) +
-  ylim(0,15) + 
+  ylim(0,15) +
   theme(legend.position="bottom") +
   theme(legend.title = element_blank()) +
   labs(title = "Raw Data") +
@@ -272,7 +294,7 @@ arcplot
 ## boxplot to see if the log transformation was good
 ```{r}
 box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
-box2_log = cbind(boxplot_tbl(z3_log, index = 1), GSE46474_id)
+box2_log = cbind(boxplot_tbl(z4_log, index = 1), GSE129166_id)
 box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
 box4_log = rbind(box1_log, box2_log, box3_log)
 
@@ -295,8 +317,8 @@ logplot
 ## getting the results vectors for only reject or stable
 ```{r}
 p_GSE46474 = pData(GSE46474)
-p_GSE48581 = pData(GSE48581) 
-p_GSE36059 = pData(GSE36059) 
+p_GSE48581 = pData(GSE48581)
+p_GSE36059 = pData(GSE36059)
 
 p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
 p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
@@ -307,10 +329,10 @@ y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
 ### GSE36059
 ### GSE48581
-# these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
+# these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary
 ```
 
-## getting results vector for more 
+## getting results vector for more
 ```{r}
 gse36059_p$exact_diagnosis = ifelse(gse36059_p$characteristics_ch1 == "diagnosis: non-rejecting", 0, ifelse(gse36059_p$characteristics_ch1 =="diagnosis: ABMR", 1, ifelse(gse36059_p$characteristics_ch1 == "diagnosis: TCMR", 2, 3)))
 
@@ -323,6 +345,7 @@ gse129166_p$exact_diagnosis = ifelse((gse129166_p$characteristics_ch1.1 == "tcmr
 ## running CPOP
 ```{r}
 #CPOP model
+
 
 counter = 0
 
@@ -358,7 +381,7 @@ for (i in c(71)) {
         intercept = FALSE)
 
     prediction_z3 <- predict_cpop(cpopresult, z3_log, s = "lambda.min")
-    
+
 }
 }
 prediction_z3
@@ -373,8 +396,8 @@ K = 5  # number of CV folds
 # permute all the data, into 5 folds
 n1 = nrow(z1_log)
 n2 = nrow(z2_log)
-cvSets_z1 = cvTools::cvFolds(n1, K) 
-cvSets_z2 = cvTools::cvFolds(n2, K) 
+cvSets_z1 = cvTools::cvFolds(n1, K)
+cvSets_z2 = cvTools::cvFolds(n2, K)
 
 
 cv_acc_z1 = NA  # initialise results vector
@@ -392,15 +415,15 @@ for (j in 1:K) {
     z2_log_train = z2_log[-test_id_z2, ]
     y2_test = y2[test_id_z2]
     y2_train = y2[-test_id_z2]
-    
+
 
     counter = 0
-    
+
     bal_acc_y3_test = numeric(length(101))
     features_test = numeric(length(101))
     y3_alpha_accuracy_list = list()
     features_list = list()
-    
+
     for (i in c(71)) {
       set.seed(3888)
       counter = counter + 1
@@ -430,7 +453,7 @@ for (j in 1:K) {
     fit_z2 = predict_cpop(cpopresult, z2_log_test, s = "lambda.min")
     cv_acc_z1[j] = mean(fit_z1$cpop_model_avg_class == y1_test)
     cv_acc_z2[j] = mean(fit_z2$cpop_model_avg_class == y2_test)
-    
+
     cv_acc_alphas_z1[counter2] = mean(cv_acc_z1)
     cv_acc_alphas_z2[counter2] = mean(cv_acc_z2)
       }
@@ -446,7 +469,7 @@ cv_acc_alphas_z2
 ## make this balanced acc
 ```
 
-#pre-lim work to make feature graph 
+#pre-lim work to make feature graph
 ```{r}
 results = cpopresult$coef_tbl
 results$average = (results$coef1 +results$coef2)/2
@@ -461,7 +484,7 @@ plot_lratio_network(results$coef_name, type = "visNetwork")
 results
 ```
 
-#making the final feature graph with colours and sizing. Make colours better + add explanation about what the colour + size means. Change the size of the edges! 
+#making the final feature graph with colours and sizing. Make colours better + add explanation about what the colour + size means. Change the size of the edges!
 ```{r}
 #playing with network
 results =
@@ -514,40 +537,32 @@ for (a in 1:length(names_uniq)) {
 clr
 names
 edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
-nodes = data.frame(id = c(1:length(names_uniq)), 
-                   label = names_uniq, 
+nodes = data.frame(id = c(1:length(names_uniq)),
+                   label = names_uniq,
                    color = clr)
 
 visNetwork(nodes, edges, height = "500px", width = "100%")
 
 
-
+length(names_uniq)
 
 ```
-```
 
+
+Dirty data fixing
 ```{r}
-## Random CPOP code while I try debug earlier chunk
-    c = is.na(prediction_z3$cpop_model_avg_class)
-    na_index1 = which(c %in% c(TRUE))
-    
-    if (length(na_index1) == 0) {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    else {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    
-    bal_acc_y3_test[counter2] = bal_acc
-    features_test[counter2] = length(cpopresult$features)
-  }
-  
-  y3_alpha_accuracy_list[[counter]] = bal_acc_y3_test
-  features_list[[counter]] = features_test
-  print(y3_alpha_accuracy_list)
-```
 
+## any value that isnt
+dirty = read.csv("Data/dirtyuser.csv")
+head(dirty)
+dummy_col = dirty$GSM3701704
+for (i in c(1:length(dummy_col))){
+  if (is.na(as.double(dummy_col[i])) == TRUE){
+    dummy_col[i] = NA
+  }
+  else if (dummy_col[i] < 0){
+    dummy_col[i] = NA
+  }
+}
+
+```
