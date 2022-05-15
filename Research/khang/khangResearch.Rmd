@@ -51,19 +51,18 @@ GSE129166 = getGEO("GSE129166")[[1]]
 
 userFile <- read_csv('../Liam/Data/userUploadData.csv')
 
-as.vector(userFile[,'...1'])
 
 
 
 # 
 # set.seed(3888)
-# # 
+# #
 # cname <- tail(colnames(u),-1)
-# # 
+# #
 # amountOFErrors <- 10000
-# # 
+# #
 # errors <- c(NA,"NA", "na","Na", "nA", "-","rubbish","brah", "/", "", "  ", "    ", "", "-99", -99,0)
-# # 
+# #
 # for (val in cname){
 #   curVec <- u[[val]]
 #    ind <-  which(curVec %in% sample(curVec,amountOFErrors))
@@ -71,7 +70,7 @@ as.vector(userFile[,'...1'])
 # }
 # 
 #  write.csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv", row.names = FALSE)
-# class(u)
+
 
 
  
@@ -86,6 +85,7 @@ myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TC
 
 output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
 
+output
 
 write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
 
@@ -557,9 +557,10 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
 generateCPOPmodel(z1,y1,z2,y2)
 
 which(unique(userFile[,'...1'])=="outcomes") 
-userFile['outcome',]
+which(userFile[['...1']] == 'diagnosis')
 
 
+tail(unname(unlist(userFile[54676, ])),-1)
 ```
 
 
