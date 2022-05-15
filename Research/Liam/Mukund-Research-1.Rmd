@@ -215,7 +215,7 @@ z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
 z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
 z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
 
-View(z1_log)
+# View(z1_log)
 ```
 
 ## pre transformation plot
@@ -481,16 +481,16 @@ names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-na
 names$color = results$color
 
 
-network = plot_lratio_network(coef, type = "visNetwork")
-network
-names_uniq = unique(c(names$feature1, names$feature2))
+# network = plot_lratio_network(coef, type = "visNetwork")
+# network
+names_uniq = unique(c(names$feature1, names$feature2)) # get the unique nodes
 names_uniq
 numbers = names
 numbers
 for (a in 1:nrow(numbers)) {
   for (i in 1:length(names_uniq)) {
     if (numbers$feature2[a] == names_uniq[i]) {
-      numbers$feature2[a] = i
+      numbers$feature2[a] = i # give feature 2 an id
     }
   }
 }
@@ -498,7 +498,7 @@ for (a in 1:nrow(numbers)) {
 for (a in 1:nrow(numbers)) {
   for (i in 1:length(names_uniq)) {
     if (numbers$feature1[a] == names_uniq[i]) {
-      numbers$feature1[a] = i
+      numbers$feature1[a] = i # give feature 1 id
     }
   }
 }
@@ -514,7 +514,7 @@ for (a in 1:length(names_uniq)) {
 clr
 names
 edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
-nodes = data.frame(id = c(1:35), 
+nodes = data.frame(id = c(1:length(names_uniq)), 
                    label = names_uniq, 
                    color = clr)
 
