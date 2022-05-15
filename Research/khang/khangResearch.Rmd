@@ -52,8 +52,8 @@ GSE129166 = getGEO("GSE129166")[[1]]
 userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 
 
-rownames(userFile) <- userFile[[1]]
-userFile['diagnosis',]
+# rownames(userFile) <- userFile[[1]]
+# userFile['diagnosis',]
 
 # set.seed(3888)
 # #
@@ -508,37 +508,12 @@ visNetwork(nodes, edges, height = "500px", width = "100%")
 
 ```
 
-```{r}
-## Random CPOP code while I try debug earlier chunk
-    c = is.na(prediction_z3$cpop_model_avg_class)
-    na_index1 = which(c %in% c(TRUE))
-    
-    if (length(na_index1) == 0) {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    else {
-      bal_acc <- yardstick::bal_accuracy_vec(
-      truth = y3,
-      estimate = factor(coalesce(prediction_z3$cpop_model_avg_class, "0")))
-    }
-    
-    bal_acc_y3_test[counter2] = bal_acc
-    features_test[counter2] = length(cpopresult$features)
-  }
-  
-  y3_alpha_accuracy_list[[counter]] = bal_acc_y3_test
-  features_list[[counter]] = features_test
-  print(y3_alpha_accuracy_list)
-```
-
 ## Khang play area
 # Create function for user input and compare with 3 datasets
 ```{r}
 
 generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
-  set.seed()
+  set.seed(3888)
   return(cpop_model(user,
         inhouse,
         userOutcomes,
@@ -557,15 +532,20 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
 }
 generateCPOPmodel(z1,y1,z2,y2)
 
-# which(unique(userFile[,1])=="outcomes") 
 
+userFile[[1]] = tolower(userFile[[1]])
+diagnosisIndex <- which(userFile[[1]] == 'diagnosis')
 
-userFile[,1]
-length(colnames(userFile))
-dim(userFile[-which(userFile[[1]] == 'diagnosis'),])
-userBinaryOutcomes <- tail(unname(unlist(userFile[which(userFile[[1]] == 'diagnosis'), ])),-1)
+userBinaryOutcomes <- tail(unname(unlist(userFile[diagnosisIndex, ])),-1)
+userExpression <- userFile[-diagnosisIndex,]
 
-userFile <- read_csv('../Liam/Data/userUploadData.csv')
+feature1 <- 
+
+# userFile <- read_csv('../Liam/Data/userUploadData.csv')
+
+# rownames(userFile) <- userFile[[1]]
+# userFile[2,]
+
 
 ```
 
