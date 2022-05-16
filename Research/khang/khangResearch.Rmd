@@ -54,6 +54,7 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 
 # rownames(userFile) <- userFile[[1]]
 # userFile['diagnosis',]
+u <- userFile
 
 set.seed(3888)
 # #
@@ -74,7 +75,7 @@ for (val in cname){
 # 
 write_csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv")
 
-
+u
 
  
 ```
@@ -543,6 +544,7 @@ userFile <- data.frame(read_csv('../Liam/Data/userUploadData.csv', name_repair =
 
 rownames(userFile) <-  tolower(userFile[[1]])
 userFile <-  userFile[,-1]
+
 diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
 
 userExpression <- userFile[-diagnosisIndex,]
@@ -597,7 +599,6 @@ z0
 # exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 # row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
-userExpression
 
 Variance <-  rowVars(as.matrix(userExpression))
 Variance <- as.data.frame(variance)
