@@ -37,7 +37,7 @@ GSE48581 = getGEO("GSE48581")[[1]]
 
 
 # The below is what the user uploads
-# GSE129166 = getGEO("GSE129166")[[1]]
+GSE129166 = getGEO("GSE129166")[[1]]
 # 
 # GSKhang = getGEO(")
 # slotNames(GSKhang)
@@ -55,21 +55,24 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 # rownames(userFile) <- userFile[[1]]
 # userFile['diagnosis',]
 
-# set.seed(3888)
+set.seed(3888)
 # #
-# cname <- tail(colnames(u),-1)
+cname <- tail(colnames(u),-1)
 # #
-# amountOFErrors <- 10000
+amountOFErrors <- 10000
 # #
 # errors <- c(NA,"NA", "na","Na", "nA", "-","rubbish","brah", "/", "", "  ", "    ", "", "-99", -99,0)
+
+
 # #
-# for (val in cname){
-#   curVec <- u[[val]]
-#    ind <-  which(curVec %in% sample(curVec,amountOFErrors))
-#    u[[val]][ind] <- sample(errors,1)
-# }
+for (val in cname){
+  curVec <- u[[val]]
+   ind <-  which(curVec %in% sample(curVec,amountOFErrors))
+   # u[[val]][ind] <- sample(errors,1)
+   u[[val]][ind] <- NA
+}
 # 
-# write_csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv")
+write_csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv")
 
 
 
@@ -89,7 +92,7 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 # 
 # write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
 
-# write_csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv")
+
 
 
 ```
@@ -99,6 +102,7 @@ userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
 
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE36059 = (exprs(GSE36059))
+
 Variance = rowVars(as.matrix(exp_GSE36059)) #
 Variance = as.data.frame(Variance)
 
@@ -108,11 +112,12 @@ exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
 exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
 exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
 
-
 row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
 ```
 
 # write.csv(exp_GSE129166,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
+
+
 ```{r}
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE46474 = (exprs(GSE46474))
@@ -540,7 +545,7 @@ rownames(userFile) <-  tolower(userFile[[1]])
 userFile <-  userFile[,-1]
 diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
 
-userExpression <- as.matrix(as.data.frame(t(as.matrix(userFile[-diagnosisIndex,])))) 
+userExpression <- userFile[-diagnosisIndex,]
 userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
 
 # dim(userExpression)
@@ -560,8 +565,22 @@ class(userExpression)
 class(userBinaryOutcomes)
 class(z1)
 class(y1)
+## keeping only the 2000 most variable genes in my data frame 
 
 
+exp_GSE36059 = (exprs(GSE36059))
+Variance = rowVars(as.matrix(exp_GSE36059)) #
+Variance = as.data.frame(Variance)
+
+exp_GSE36059 = as.data.frame(exp_GSE36059)
+
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+
+row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
+
+# do we want to find name intersection
 
 z0
 # userFile <- read_csv('../Liam/Data/userUploadData.csv')
@@ -569,6 +588,31 @@ z0
 # rownames(userFile) <- userFile[[1]]
 # userFile[2,]
 
+# exp_GSE48581 = (exprs(GSE48581))
+# Variance = rowVars(as.matrix(exp_GSE48581))
+# Variance = as.data.frame(Variance)
+# exp_GSE48581 = as.data.frame(exp_GSE48581)
+# exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
+# exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
+# exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
+# row_names_exp_GSE48581 = rownames(exp_GSE48581)
+
+userExpression
+
+Variance <-  rowVars(as.matrix(userExpression))
+Variance <- as.data.frame(variance)
+# class(userExpression)
+# test <- as.data.frame(apply(userExpression,1,var))
+userExpression = cbind(userExpression, variance = Variance)
+userExpression = slice_max(userExpression, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
+userExpression = subset(userExpression, select = -c(Variance))
+# 
+# row_names_userExpression = rownames(userExpression) # used for finding common probe ids
+
+
+a <- c(1,2,3)
+b <- c(1,2,3)
+c <- c(1,2,3)
 
 ```
 
