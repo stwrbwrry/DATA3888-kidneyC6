@@ -1,0 +1,41 @@
+---
+title: "CSV Ingesting"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+```
+
+```{r}
+ingest_csv = function(csv) {
+  if (is.data.frame(csv) == FALSE) {
+    return(NULL)
+  }
+  csv_cols = lower(colnames(csv))
+  if (("outcome" %in% csv_cols) == FALSE) {
+    return(NULL)
+  }
+
+}
+```
+
