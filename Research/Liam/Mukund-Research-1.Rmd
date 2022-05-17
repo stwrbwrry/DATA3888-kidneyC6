@@ -555,12 +555,17 @@ Dirty data fixing
 ## any value that isnt
 library(tidyverse)
 library(Hmisc)
-
-dirty = read_csv("Data/dirtyuser.csv")
+library(dplyr)
+library(tidyr)
+dirty = read.csv("Data/dirtyuser.csv")
 head(dirty)
-dummy_col = dirty$GSM3701704
-
-for (j in c(1:ncol(dirty))){
+#dummy_col = dirty2$GSM3701704
+dirty = dirty[c(-1)]
+colnames = colnames(dirty)
+colnames
+## Assume that all data is numeric
+## Can have missing values 
+for (j in c(1)){
   dummy_col = dirty[,j]
   for (i in c(1:length(dummy_col))){
   if (is.na(as.double(dummy_col[i])) == TRUE){
@@ -576,5 +581,42 @@ for (j in c(1:ncol(dirty))){
   dirty[,j] = dummy_col
 }
 
-
+dirty[,2]
 ```
+
+```{r}
+userFile <- data.frame(read_csv('Data/dirtyuser.csv', name_repair = "minimal"))
+
+rownames(userFile) <-  tolower(userFile[[1]])
+userFile <-  userFile[,-1]
+diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
+
+
+
+Variance = rowVars(as.matrix(userFile), na.rm=TRUE)
+Variance = as.data.frame(Variance)
+userFile = as.data.frame(userFile)
+userFile = cbind(userFile, variance = Variance)
+userFile = slice_max(userFile, order_by = Variance, n = 2000)
+userFile = subset(userFile, select = -c(Variance))
+head(userFile)
+userFile <- as.data.frame(t(userFile))
+head(userFile)
+userFile <- userFile %>% 
+  mutate_if(is.numeric, ~replace_na(.,mean(., na.rm = TRUE)))
+head(userFile)
+```
+
+
+```{r}
+a = as.factor(c(0.01,NA,0.03,0.04))
+b = c(2,4,5,NA)
+df1 = data.frame(a,b)
+
+df1 = as.data.frame(t(df1))
+df1
+
+for (i )
+impute(df1, fun = median)
+```
+
