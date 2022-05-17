@@ -111,10 +111,6 @@ userExpression <- as.data.frame(t(userExpression))
 
 userExpression <- userExpression %>% mutate_if(is.numeric, ~replace_na(.,mean(., na.rm = TRUE)))
 
-
-
-
-
 f <- calc_mode(userBinaryOutcomes)
 majorityClass <- as.numeric(levels(f))[f]
 
@@ -217,8 +213,6 @@ z2 = exp_GSE48581 %>% as.matrix()
 z3 = exp_GSE46474 %>% as.matrix()
 userExpression <- userExpression %>% as.matrix()
 
-dim(userExpression)
-
 y1 = as.factor(p_GSE36059$diagnosis)
 y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
@@ -239,12 +233,8 @@ f1 <- feature1$coef_tbl$coef_name[-1]
 f2 <- feature2$coef_tbl$coef_name[-1]
 f3 <- feature3$coef_tbl$coef_name[-1]
 
-k1 <- c(sub("--.*", "", f1), sub(".*--", "", f1))
-k2 <- c(sub("--.*", "", f2), sub(".*--", "", f2))
-k3 <- c(sub("--.*", "", f3), sub(".*--", "", f3))
-
 rI <- intersect(f1,f2)
-rp <- intersect(rI,f3)
+stableFeatures <- intersect(rI,f3)
 # generateCPOPmodel(z1,y1,z2,y2)
 f1
 f2
