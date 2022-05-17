@@ -249,12 +249,12 @@ test1 = data.frame(z1) %>% select(known_genes)
 test2 = data.frame(z2) %>% select(known_genes)
 
 test1 = pairwise(test1, NULL, "Log")
-test3 = pairwise(test2, NULL, "Log")
+test2 = pairwise(test2, NULL, "Log")
 
 outcome1 = knn(z, test1, p_GSE46474$outcome, k=3)
 outcome2 = knn(z, test2, p_GSE46474$outcome, k=3)
 
-outcome1
+p_GSE46474$outcome
 ```
 
 
@@ -273,10 +273,21 @@ z3_pairwise$gender_outcome = as.factor(p_GSE46474$outcome)
 ```
 
 ```{r}
+z1_pairwise
+```
+
+
+```{r}
 joined = union(union(z1_pairwise, z2_pairwise), z3_pairwise)
 joined
 ```
 ```{r}
 write.csv(joined, "combined_dataset.csv")
 ```
+
+
+```{r}
+# TODO: PCA plot for 46474
+```
+
 
