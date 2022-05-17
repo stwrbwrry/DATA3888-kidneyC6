@@ -80,4 +80,3 @@ All 3 have perfect overlap so the datasets recommended for use are "GSE129166", 
 ```{r}
 length(union(fData(geo_list[[1]])["Gene Symbol"], fData(geo_list[[4]])["Gene Symbol"])[[1]])
 ```
-

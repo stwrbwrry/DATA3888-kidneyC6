@@ -31,3 +31,152 @@ library(visNetwork)
 # TODO: CPOP on gender from GSE46474 (Blood) GSE34748 (Biopsy), see whether the features match existing literature and see whether the model is accurate. Also try ComBat + SVM or KNN
 ```
 
+```{r}
+GSE46474 = getGEO("GSE46474")[[1]]
+GSE34748 = getGEO("GSE34748")[[1]]
+```
+
+```{r}
+gene_names = function(gse) {
+  fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+  idx = which(!duplicated(fData(gse)$`Gene Symbol`) & !is.na(fData(gse)$`Gene Symbol`))
+  gse = gse[idx,]
+  rownames(gse) = fData(gse)$`Gene Symbol`
+  
+  return(gse)
+}
+
+GSE46474 = gene_names(GSE46474)
+GSE34748 = gene_names(GSE34748)
+```
+
+
+```{r}
+p_GSE46474 = pData(GSE46474)
+pData(GSE34748)
+```
+
+```{r}
+p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
+p_GSE46474 %>% select(characteristics_ch1.1, outcome)
+```
+
+```{r}
+pairwise_preprocess = function(exp_GSE, top_x) {
+  Variance = rowVars(as.matrix(exp_GSE))
+  Variance = as.data.frame(Variance)
+  exp_GSE = as.data.frame(exp_GSE)
+  exp_GSE = cbind(exp_GSE, variance = Variance)
+  exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
+  exp_GSE = subset(exp_GSE, select = -c(Variance))
+  row_names_exp_GSE = rownames(exp_GSE)
+  exp_GSE = as.data.frame(t(as.matrix(exp_GSE)))
+  
+  return(exp_GSE)
+}
+```
+
+
+```{r}
+pairwise = function(exp_GSE, intersection, transform_type) {
+  
+  #exp_GSE = subset(exp_GSE, select = c(intersection))
+  
+  z = exp_GSE
+  
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z = z + 1
+    z = log(z)
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  z = data.frame(z)
+  
+  return(z)
+  
+}
+```
+
+```{r}
+z = pairwise_preprocess(exprs(GSE46474), 50)
+known_genes = c("XIST", "EIF1AY", "ANKRD44")
+z = z %>% select(known_genes) 
+z = pairwise(z, NULL, "Log")
+z
+
+# TODO: Check new datasets with log transformations to see if they are standardised
+```
+
+
+```{r}
+X1 = z
+y1 = p_GSE46474$outcome
+
+cvK = 5 # Number of CV folds
+cv_acc_knn = cv_50acc5_knn = c()
+
+for (i in 1:50) {
+  
+  cvSets = cvTools::cvFolds(nrow(X1), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X1[test_id, ]
+      X_train = X1[-test_id, ]
+      y_test = y1[test_id]
+      y_train = y1[-test_id]
+      #KNN
+      fit <- knn(X_train, X_test, y_train, k = 3)
+      cv_acc_knn[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_knn <- append(cv_50acc5_knn, mean(cv_acc_knn))
+}
+
+mean(cv_50acc5_knn)
+```
+```{r}
+z$outcome = as.factor(p_GSE46474$outcome)
+rownames(z) = NULL
+z
+
+```
+
+
+```{r}
+# TODO: Logistic regression
+
+cvK = 5
+
+for (i in 1:1) {
+  cvSets = cvFolds(nrow(X1), cvK)
+  
+  for (j in 1:cvK) {
+    test_id = cvSets$subsets[cvSets$which == j]
+    train = z[-test_id,]
+    test = z[test_id,]
+    test = test[ , !(names(test) %in% c("outcome"))]
+    model = glm(outcome ~ ., family=binomial(link='logit'), data = train)
+    res = predict(model, test, type = "response")
+    
+  }
+
+}
+
+```
+
+```{r}
+z
+```
+
+

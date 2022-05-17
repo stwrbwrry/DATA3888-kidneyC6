@@ -1,0 +1,275 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, include=FALSE}
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+library(visNetwork)
+```
+
+## Mukund CPOP analysis 
+```{r}
+#CPOP data
+GSE46474 = getGEO("GSE46474")[[1]]
+GSE36059 = getGEO("GSE36059")[[1]]
+GSE48581 = getGEO("GSE48581")[[1]]
+
+
+# The below is what the user uploads
+# GSE129166 = getGEO("GSE129166")[[1]]
+# The below is not important
+#GSE15296 = getGEO("GSE15296")[[1]]
+```
+
+
+```{r}
+gene_names = function(gse) {
+  fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+  idx = which(!duplicated(fData(gse)$`Gene Symbol`) & !is.na(fData(gse)$`Gene Symbol`))
+  gse = gse[idx,]
+  rownames(gse) = fData(gse)$`Gene Symbol`
+  
+  return(gse)
+}
+
+GSE46474 = gene_names(GSE46474)
+GSE36059 = gene_names(GSE36059)
+GSE48581 = gene_names(GSE48581)
+```
+
+```{r}
+pData(GSE46474)
+pData(GSE36059)
+pData(GSE48581)
+```
+
+
+```{r}
+## keeping only the 100 most variable genes in my data frame 
+exp_GSE36059 = (exprs(GSE36059))
+Variance = rowVars(as.matrix(exp_GSE36059))
+Variance = as.data.frame(Variance)
+exp_GSE36059 = as.data.frame(exp_GSE36059)
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000)
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
+row_names_exp_GSE36059 = rownames(exp_GSE36059)
+
+
+exp_GSE46474 = (exprs(GSE46474))
+Variance = rowVars(as.matrix(exp_GSE46474))
+Variance = as.data.frame(Variance)
+exp_GSE46474 = as.data.frame(exp_GSE46474)
+exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
+exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 2000)
+exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
+row_names_exp_GSE46474 = rownames(exp_GSE46474)
+
+
+exp_GSE48581 = (exprs(GSE48581))
+Variance = rowVars(as.matrix(exp_GSE48581))
+Variance = as.data.frame(Variance)
+exp_GSE48581 = as.data.frame(exp_GSE48581)
+exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
+exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
+exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
+row_names_exp_GSE48581 = rownames(exp_GSE48581)
+
+
+intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
+intersection = intersect(intersection, row_names_exp_GSE48581)
+
+exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
+exp_GSE36059 = subset(exp_GSE36059, select = c(intersection))
+
+exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474)))
+exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
+
+exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
+exp_GSE48581 = subset(exp_GSE48581, select = c(intersection))
+
+GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059)))
+GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
+GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
+
+z1 = exp_GSE36059 %>% as.matrix()
+z3 = exp_GSE46474 %>% as.matrix()
+z2 = exp_GSE48581 %>% as.matrix()
+
+## arcsine transformation
+
+exp_GSE36059_arc <- exp_GSE36059
+exp_GSE36059_arc = exp_GSE36059_arc / max(exp_GSE36059_arc)
+exp_GSE36059_arc = asin(sqrt(exp_GSE36059_arc))
+
+exp_GSE46474_arc <- exp_GSE46474
+exp_GSE46474_arc = exp_GSE46474_arc / max(exp_GSE46474_arc)
+exp_GSE46474_arc = asin(sqrt(exp_GSE46474_arc))
+
+exp_GSE48581_arc <- exp_GSE48581
+exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
+exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
+
+z1_pairwise = pairwise_col_diff(z1) %>% as.matrix()
+z2_pairwise = pairwise_col_diff(z2) %>% as.matrix()
+z3_pairwise = pairwise_col_diff(z3) %>% as.matrix()
+
+
+z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
+z3_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
+z2_arc = pairwise_col_diff(exp_GSE48581_arc) %>% as.matrix()
+
+## log transform
+
+exp_GSE36059_log <- exp_GSE36059
+exp_GSE36059_log = exp_GSE36059_log + 1
+exp_GSE36059_log = log(exp_GSE36059_log)
+
+exp_GSE46474_log <- exp_GSE46474
+exp_GSE46474_log = exp_GSE46474_log + 1
+exp_GSE46474_log = log(exp_GSE46474_log)
+
+exp_GSE48581_log <- exp_GSE48581
+exp_GSE48581_log = exp_GSE48581_log + 1
+exp_GSE48581_log = log(exp_GSE48581_log)
+
+z1_log = exp_GSE36059_log  %>% as.matrix()
+z3_log = exp_GSE46474_log %>% as.matrix()
+z2_log = exp_GSE48581_log %>% as.matrix()
+
+# View(z1_log)
+```
+
+
+
+## getting the results vectors 
+```{r}
+p_GSE46474 = pData(GSE46474)
+p_GSE48581 = pData(GSE48581) 
+p_GSE36059 = pData(GSE36059) 
+
+p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
+
+y1 = as.factor(p_GSE36059$diagnosis)
+y2 = as.factor(p_GSE48581$diagnosis)
+y3 = as.factor(p_GSE46474$diagnosis)
+### GSE36059
+### GSE48581
+# these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
+```
+
+## Predicting Gender
+```{r}
+z1_pairwise = data.frame(pairwise_col_diff(z1_log) %>% as.matrix())
+z2_pairwise = data.frame(pairwise_col_diff(z2_log) %>% as.matrix())
+z3_pairwise = data.frame(pairwise_col_diff(z3_log) %>% as.matrix())
+z3_pairwise
+```
+```{r}
+p_GSE46474 = pData(GSE46474)
+p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
+p_GSE46474
+```
+
+```{r}
+pairwise_preprocess = function(exp_GSE, top_x) {
+  Variance = rowVars(as.matrix(exp_GSE))
+  Variance = as.data.frame(Variance)
+  exp_GSE = as.data.frame(exp_GSE)
+  exp_GSE = cbind(exp_GSE, variance = Variance)
+  exp_GSE = slice_max(exp_GSE, order_by = Variance, n = top_x)
+  exp_GSE = subset(exp_GSE, select = -c(Variance))
+  row_names_exp_GSE = rownames(exp_GSE)
+  exp_GSE = as.data.frame(t(as.matrix(exp_GSE)))
+  
+  return(exp_GSE)
+}
+```
+
+```{r}
+pairwise = function(exp_GSE, intersection, transform_type) {
+  
+  #exp_GSE = subset(exp_GSE, select = c(intersection))
+  
+  z = exp_GSE
+  
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z = z + 1
+    z = log(z)
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  z = data.frame(z)
+  
+  return(z)
+}
+```
+
+```{r}
+z = pairwise_preprocess(exprs(GSE46474), 50)
+known_genes = c("XIST", "EIF1AY", "ANKRD44")
+z = z %>% select(known_genes) 
+z = pairwise(z, NULL, "Log")
+z
+```
+```{r}
+test1 = data.frame(z1) %>% select(known_genes)
+test2 = data.frame(z2) %>% select(known_genes)
+
+test1 = pairwise(test1, NULL, "Log")
+test3 = pairwise(test2, NULL, "Log")
+
+outcome1 = knn(z, test1, p_GSE46474$outcome, k=3)
+outcome2 = knn(z, test2, p_GSE46474$outcome, k=3)
+
+outcome1
+```
+
+
+```{r}
+z1_pairwise$outcome = y1
+z2_pairwise$outcome = y2
+z3_pairwise$outcome = y3
+
+z1_pairwise$gender_outcome = outcome1
+z2_pairwise$gender_outcome = outcome2
+z3_pairwise$gender_outcome = p_GSE46474$outcome
+```
+
+```{r}
+joined = union(union(z1_pairwise, z2_pairwise), z3_pairwise)
+joined
+```
+
