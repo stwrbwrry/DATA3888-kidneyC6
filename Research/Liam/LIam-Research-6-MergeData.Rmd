@@ -263,13 +263,20 @@ z1_pairwise$outcome = y1
 z2_pairwise$outcome = y2
 z3_pairwise$outcome = y3
 
+z1_pairwise$dataset = "GSE36059"
+z2_pairwise$dataset = "GSE48581"
+z3_pairwise$dataset = "GSE46474"
+
 z1_pairwise$gender_outcome = outcome1
 z2_pairwise$gender_outcome = outcome2
-z3_pairwise$gender_outcome = p_GSE46474$outcome
+z3_pairwise$gender_outcome = as.factor(p_GSE46474$outcome)
 ```
 
 ```{r}
 joined = union(union(z1_pairwise, z2_pairwise), z3_pairwise)
 joined
+```
+```{r}
+write.csv(joined, "combined_dataset.csv")
 ```
 
