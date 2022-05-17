@@ -1,5 +1,5 @@
 ---
-title: "Liam Research 1"
+title: "Khang Research 1"
 output: html_notebook
 ---
 
@@ -28,76 +28,105 @@ library(visNetwork)
 library(sva)
 ```
 
-## Mukund CPOP analysis 
+## Mukund CPOP analysis
+
 ```{r}
 #CPOP data
-GSE46474 = getGEO("GSE46474")[[1]]
-GSE36059 = getGEO("GSE36059")[[1]]
-GSE48581 = getGEO("GSE48581")[[1]]
+
+# original import from server
+# GSE46474 = getGEO("GSE46474")[[1]]
+# GSE36059 = getGEO("GSE36059")[[1]]
+# GSE48581 = getGEO("GSE48581")[[1]]
+# 
+# saveRDS(GSE46474, file = "GSE46474.rds")
+# saveRDS(GSE36059, file = "GSE36059.rds")
+# saveRDS(GSE48581, file = "GSE48581.rds")
+
+
+GSE46474 <- readRDS("GSE46474.rds")
+GSE36059 <-  readRDS("GSE36059.rds")
+GSE48581 <-  readRDS("GSE48581.rds")
 
 
 # The below is what the user uploads
-GSE129166 = getGEO("GSE129166")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]]
 # 
 # GSKhang = getGEO(")
 # slotNames(GSKhang)
 # The below is not important
 #GSE15296 = getGEO("GSE15296")[[1]]
 ```
-# Create error function for user upload data
+
+## Khang play area
+
+# Create function for user input and compare with 3 datasets
 
 ```{r}
-## Khang's work 
-
-userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
-
-
-# rownames(userFile) <- userFile[[1]]
-# userFile['diagnosis',]
-u <- userFile
-
-set.seed(3888)
-# #
-cname <- tail(colnames(u),-1)
-# #
-amountOFErrors <- 10000
-# #
-# errors <- c(NA,"NA", "na","Na", "nA", "-","rubbish","brah", "/", "", "  ", "    ", "", "-99", -99,0)
-
-
-# #
-for (val in cname){
-  curVec <- u[[val]]
-   ind <-  which(curVec %in% sample(curVec,amountOFErrors))
-   # u[[val]][ind] <- sample(errors,1)
-   u[[val]][ind] <- NA
+calc_mode <- function(x){
+  # List the distinct / unique values
+  distinct_values <- unique(x)
+  # Count the occurrence of each distinct value
+  distinct_tabulate <- tabulate(match(x, distinct_values))
+  # Return the value with the highest occurrence
+  distinct_values[which.max(distinct_tabulate)]
 }
-# 
-write_csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv")
+generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
+  set.seed(3888)
+  return(cpop_model(user,
+        inhouse,
+        userOutcomes,
+        inhouseOutcomes,
+        w = NULL,
+        n_features = 30,
+        n_iter = 20,
+        alpha = 1,
+        family = "binomial",
+        s = "lambda.min",
+        cpop2_break = TRUE,
+        cpop2_type = "sign",
+        cpop2_mag = 1,
+        cpop1_method = "normal",
+        intercept = FALSE))
+}
 
-u
 
- 
+userFile <- data.frame(read_csv('../Liam/Data/dirtyuser.csv', name_repair = "minimal"))
+rownames(userFile) <-  tolower(userFile[[1]])
+userFile <-  userFile[,-1]
+diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
+
+userExpression <- userFile[-diagnosisIndex,]
+userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
+
+myVar = rowVars(as.matrix(userExpression), na.rm=TRUE)
+myVar = as.data.frame(myVar)
+
+userExpression = cbind(userExpression, variance = myVar)
+userExpression = slice_max(userExpression, order_by = myVar, n = 2000)
+userExpression = subset(userExpression, select = -c(myVar))
+
+# get the row names (probe ids) before transpose
+row_names_UE= rownames(userExpression)
+
+userExpression <- as.data.frame(t(userExpression))
+
+userExpression <- userExpression %>% mutate_if(is.numeric, ~replace_na(.,mean(., na.rm = TRUE)))
+
+
+
+
+
+f <- calc_mode(userBinaryOutcomes)
+majorityClass <- as.numeric(levels(f))[f]
+
+userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
+
+
+# feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
+
+
+
 ```
-
-
-```{r}
-# exp_GSE129166 = as.data.frame(exprs(GSE129166))
-# # 0 is stable, 1 is rejection
-# myP <- pData(GSE129166)
-# myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
-# 
-# output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
-# 
-# output
-# 
-# write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
-
-
-
-
-```
-
 
 ```{r}
 
@@ -117,7 +146,6 @@ row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe 
 ```
 
 # write.csv(exp_GSE129166,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
-
 
 ```{r}
 ## keeping only the 2000 most variable genes in my data frame 
@@ -144,15 +172,15 @@ row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
 ```
 
-
 ```{r}
 ## now find the most common probe ids names between 3 datasets
 intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
 intersection = intersect(intersection, row_names_exp_GSE48581)
+intersection = intersect(intersection, row_names_UE)
 ```
 
-
 ```{r}
+
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection)) # select rows that contain the probe ids in intersection
 
@@ -162,141 +190,16 @@ exp_GSE46474 = subset(exp_GSE46474, select = c(intersection)) # select rows that
 exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
 exp_GSE48581 = subset(exp_GSE48581, select = c(intersection)) # select rows that contain the probe ids in intersection
 
-GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059))) # used for boxplots
-GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
-GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
+# create a dataframe that only contains rows common in all dataframes
 
-z1 = exp_GSE36059 %>% as.matrix() # used for box plots
-z3 = exp_GSE46474 %>% as.matrix()
-z2 = exp_GSE48581 %>% as.matrix()
+# no need to transpose as you already have done so above for user expression
+
+userExpression <-  subset(userExpression, select= c(intersection))
 ```
 
 
-```{r}
-## arcsine transformation
+## getting the results vectors
 
-exp_GSE36059_arc <- exp_GSE36059
-exp_GSE36059_arc = exp_GSE36059_arc / max(exp_GSE36059_arc)
-exp_GSE36059_arc = asin(sqrt(exp_GSE36059_arc))
-
-exp_GSE46474_arc <- exp_GSE46474
-exp_GSE46474_arc = exp_GSE46474_arc / max(exp_GSE46474_arc)
-exp_GSE46474_arc = asin(sqrt(exp_GSE46474_arc))
-
-exp_GSE48581_arc <- exp_GSE48581
-exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
-exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
-
-# use for box plots
-z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
-z3_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
-z2_arc = pairwise_col_diff(exp_GSE48581_arc) %>% as.matrix()
-```
-
-
-```{r}
-## log transform
-
-exp_GSE36059_log <- exp_GSE36059
-exp_GSE36059_log = exp_GSE36059_log + 1
-exp_GSE36059_log = log(exp_GSE36059_log)
-
-exp_GSE46474_log <- exp_GSE46474
-exp_GSE46474_log = exp_GSE46474_log + 1
-exp_GSE46474_log = log(exp_GSE46474_log)
-
-exp_GSE48581_log <- exp_GSE48581
-exp_GSE48581_log = exp_GSE48581_log + 1
-exp_GSE48581_log = log(exp_GSE48581_log)
-
-#use for box plot
-z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
-z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
-z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
-
-```
-
-## pre transformation plot
-```{r}
-
-# no pairwise difference for z1,z2,z3
-box11 = cbind(boxplot_tbl(z1, index = 1), GSE36059_id)
-box22 = cbind(boxplot_tbl(z3, index = 1), GSE46474_id)
-box33 = cbind(boxplot_tbl(z2, index = 1), GSE48581_id)
-box4 = rbind(box11, box22, box33)
-
-expressionplot <-
-ggplot(data = box4, aes(x = object, y = means)) +
-  geom_point(aes(color = Dataset), size = 0.1) +
-  geom_errorbar(aes(ymin = q1,
-                    ymax = q3,
-                    color = Dataset), size = 0.1,  alpha = 0.2) +
-  ggsci::scale_color_d3() +
-  theme(axis.ticks = element_blank()) +
-  theme(axis.text.x = element_blank()) +
-  theme(axis.title.x=element_blank()) +
-  theme(axis.title.y=element_blank()) +
-  ylim(0,15) + 
-  theme(legend.position="bottom") +
-  theme(legend.title = element_blank()) +
-  labs(title = "Raw Data") +
-  theme(plot.title = element_text(size=10))
-
-expressionplot
-```
-
-## Boxplot to visualise if the arc transformations were good
-```{r}
-# arc transformations
-box1_arc = cbind(boxplot_tbl(z1_arc, index = 1), GSE36059_id)
-box2_arc = cbind(boxplot_tbl(z3_arc, index = 1), GSE46474_id)
-box3_arc = cbind(boxplot_tbl(z2_arc, index = 1), GSE48581_id)
-box4_arc = rbind(box1_arc, box2_arc, box3_arc)
-
-arcplot <-
-ggplot(data = box4_arc, aes(x = object, y = means)) +
-  geom_point(aes(color = Dataset), size = 0.1) +
-  geom_errorbar(aes(ymin = q1,
-                    ymax = q3,
-                    color = Dataset), size = 0.1,  alpha = 0.2) +
-  ggsci::scale_color_d3() +
-  theme(axis.ticks = element_blank()) +
-  theme(axis.text.x = element_blank()) +
-  xlab("Samples") +
-  theme(axis.title.y=element_blank()) +
-  labs(title = "Arcsine transformation + pairwise difference") +
-  theme(plot.title = element_text(size=10))
-
-arcplot
-```
-
-## boxplot to see if the log transformation was good
-```{r}
-box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
-box2_log = cbind(boxplot_tbl(z3_log, index = 1), GSE46474_id)
-box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
-box4_log = rbind(box1_log, box2_log, box3_log)
-
-logplot <-
-ggplot(data = box4_log, aes(x = object, y = means)) +
-  geom_point(aes(color = Dataset), size = 0.1) +
-  geom_errorbar(aes(ymin = q1,
-                    ymax = q3,
-                    color = Dataset), size = 0.1,  alpha = 0.2) +
-  ggsci::scale_color_d3() +
-  theme(axis.ticks = element_blank()) +
-  theme(axis.text.x = element_blank()) +
-  xlab("Samples") +
-  theme(axis.title.y=element_blank()) +
-  labs(title = "Log transformation + pairwise difference") +
-  theme(plot.title = element_text(size=10))
-
-logplot
-```
-
-
-
-## getting the results vectors 
 ```{r}
 
 # CPOP stuff continued
@@ -309,16 +212,48 @@ p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-
 p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
 p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
 
+
+z1 = exp_GSE36059 %>% as.matrix() # used for box plots and CPOP
+z2 = exp_GSE48581 %>% as.matrix()
+z3 = exp_GSE46474 %>% as.matrix()
+userExpression <- userExpression %>% as.matrix()
+
 y1 = as.factor(p_GSE36059$diagnosis)
 y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
+
+
 ### GSE36059
 ### GSE48581
 # these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
 ```
+## CPOP RUN KHANG
+```{r}
+
+feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
+feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
+feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
+
+f1 <- feature1$coef_tbl$coef_name[-1] 
+f2 <- feature2$coef_tbl$coef_name[-1]
+f3 <- feature3$coef_tbl$coef_name[-1]
+
+k1 <- c(sub("--.*", "", f1), sub(".*--", "", f1))
+k2 <- c(sub("--.*", "", f2), sub(".*--", "", f2))
+k3 <- c(sub("--.*", "", f3), sub(".*--", "", f3))
+
+rI <- intersect(k1,k2)
+rp <- intersect(rI,k3)
+# generateCPOPmodel(z1,y1,z2,y2)
+f1
+f2
+f3
+
+```
 
 
 ## running CPOP
+
 ```{r}
 #CPOP model
 
@@ -357,7 +292,6 @@ for (i in c(71)) {
 prediction_z3
 # y3
 ```
-
 
 ```{r}
 ## cross validation code DONT worry will consider later
@@ -443,7 +377,6 @@ cv_acc_alphas_z2
 ## make this balanced acc
 ```
 
-
 ```{r}
 results = cpopresult$coef_tbl
 results$average = (results$coef1 +results$coef2)/2
@@ -457,7 +390,6 @@ coef = results$coef_name
 # plot_lratio_network(results$coef_name, type = "visNetwork") # another visnetwork graph
 
 ```
-
 
 ```{r}
 #playing with network
@@ -516,108 +448,186 @@ visNetwork(nodes, edges, height = "500px", width = "100%")
 
 ```
 
-## Khang play area
-# Create function for user input and compare with 3 datasets
+# Function that creates dirty csv upload data
+
 ```{r}
-
-generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
-  set.seed(3888)
-  return(cpop_model(user,
-        inhouse,
-        userOutcomes,
-        inhouseOutcomes,
-        w = NULL,
-        n_features = 30,
-        n_iter = 20,
-        alpha = 1,
-        family = "binomial",
-        s = "lambda.min",
-        cpop2_break = TRUE,
-        cpop2_type = "sign",
-        cpop2_mag = 1,
-        cpop1_method = "normal",
-        intercept = FALSE))
-}
-# generateCPOPmodel(z1,y1,z2,y2)
-
-userFile <- data.frame(read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal"))
-
-rownames(userFile) <-  tolower(userFile[[1]])
-userFile <-  userFile[,-1]
-
-diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
-
-userExpression <- userFile[-diagnosisIndex,]
-userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
-
-# dim(userExpression)
-# length(userBinaryOutcomes)
-ncol(userExpression)
-ncol(userBinaryOutcomes)
-ncol(z1)
-ncol(y1)
-ncol(z2)
-ncol(y2)
-
-
-feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
-
-head(userExpression)
-class(userExpression)
-class(userBinaryOutcomes)
-class(z1)
-class(y1)
-## keeping only the 2000 most variable genes in my data frame 
-
-
-exp_GSE36059 = (exprs(GSE36059))
-Variance = rowVars(as.matrix(exp_GSE36059)) #
-Variance = as.data.frame(Variance)
-
-exp_GSE36059 = as.data.frame(exp_GSE36059)
-
-exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
-exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
-
-row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
-
-# do we want to find name intersection
-
-z0
-# userFile <- read_csv('../Liam/Data/userUploadData.csv')
-
-# rownames(userFile) <- userFile[[1]]
-# userFile[2,]
-
-# exp_GSE48581 = (exprs(GSE48581))
-# Variance = rowVars(as.matrix(exp_GSE48581))
-# Variance = as.data.frame(Variance)
-# exp_GSE48581 = as.data.frame(exp_GSE48581)
-# exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
-# exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
-# exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
-# row_names_exp_GSE48581 = rownames(exp_GSE48581)
-
-
-Variance <-  rowVars(as.matrix(userExpression))
-Variance <- as.data.frame(variance)
-# class(userExpression)
-# test <- as.data.frame(apply(userExpression,1,var))
-userExpression = cbind(userExpression, variance = Variance)
-userExpression = slice_max(userExpression, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
-userExpression = subset(userExpression, select = -c(Variance))
+## Khang's work 
 # 
-# row_names_userExpression = rownames(userExpression) # used for finding common probe ids
-
-
-a <- c(1,2,3)
-b <- c(1,2,3)
-c <- c(1,2,3)
+# userFile <- read_csv('../Liam/Data/userUploadData.csv', name_repair = "minimal")
+# 
+# 
+# # rownames(userFile) <- userFile[[1]]
+# # userFile['diagnosis',]
+# u <- userFile
+# 
+# set.seed(3888)
+# # #
+# cname <- tail(colnames(u),-1)
+# # #
+# amountOFErrors <- 10000
+# # #
+# # errors <- c(NA,"NA", "na","Na", "nA", "-","rubbish","brah", "/", "", "  ", "    ", "", "-99", -99,0)
+# 
+# 
+# # #
+# for (val in cname){
+#   curVec <- u[[val]]
+#    ind <-  which(curVec %in% sample(curVec,amountOFErrors))
+#    # u[[val]][ind] <- sample(errors,1)
+#    u[[val]][ind] <- NA
+# }
+# # 
+# write_csv(u,"/Users/khangnguyen/Desktop/dirtyuser.csv")
+# 
+# u
 
 ```
 
+# Create GSE129166
+
+```{r}
+# exp_GSE129166 = as.data.frame(exprs(GSE129166))
+# # 0 is stable, 1 is rejection
+# myP <- pData(GSE129166)
+# myP$diagnosis = ifelse(myP$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0" & myP$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0" , 0, 1)
+# 
+# output <- rbind(exp_GSE129166, t(cbind(myP[0], diagnosis = myP$diagnosis)))
+# 
+# output
+# 
+# write.csv(output,"/Users/khangnguyen/Documents/DATA3888/DATA3888-kidneyC6/Research/Liam/Data/userUploadData.csv", row.names = TRUE)
+
+```
+
+# BoxPlot - arcSine and log
 
 
+```{r}
+## arcsine transformation
 
 
+exp_GSE36059_arc <- exp_GSE36059
+exp_GSE36059_arc = exp_GSE36059_arc / max(exp_GSE36059_arc)
+exp_GSE36059_arc = asin(sqrt(exp_GSE36059_arc))
+
+exp_GSE46474_arc <- exp_GSE46474
+exp_GSE46474_arc = exp_GSE46474_arc / max(exp_GSE46474_arc)
+exp_GSE46474_arc = asin(sqrt(exp_GSE46474_arc))
+
+exp_GSE48581_arc <- exp_GSE48581
+exp_GSE48581_arc = exp_GSE48581_arc / max(exp_GSE48581_arc)
+exp_GSE48581_arc = asin(sqrt(exp_GSE48581_arc))
+
+# use for box plots
+z1_arc = pairwise_col_diff(exp_GSE36059_arc) %>% as.matrix()
+z3_arc = pairwise_col_diff(exp_GSE46474_arc) %>% as.matrix()
+z2_arc = pairwise_col_diff(exp_GSE48581_arc) %>% as.matrix()
+```
+
+```{r}
+## log transform
+
+exp_GSE36059_log <- exp_GSE36059
+exp_GSE36059_log = exp_GSE36059_log + 1
+exp_GSE36059_log = log(exp_GSE36059_log)
+
+exp_GSE46474_log <- exp_GSE46474
+exp_GSE46474_log = exp_GSE46474_log + 1
+exp_GSE46474_log = log(exp_GSE46474_log)
+
+exp_GSE48581_log <- exp_GSE48581
+exp_GSE48581_log = exp_GSE48581_log + 1
+exp_GSE48581_log = log(exp_GSE48581_log)
+
+#use for box plot
+z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
+z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
+z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
+
+```
+
+## pre transformation plot
+
+```{r}
+GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059))) # used for boxplots
+GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
+GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
+
+
+# no pairwise difference for z1,z2,z3
+box11 = cbind(boxplot_tbl(z1, index = 1), GSE36059_id)
+box22 = cbind(boxplot_tbl(z3, index = 1), GSE46474_id)
+box33 = cbind(boxplot_tbl(z2, index = 1), GSE48581_id)
+box4 = rbind(box11, box22, box33)
+
+expressionplot <-
+ggplot(data = box4, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.title.x=element_blank()) +
+  theme(axis.title.y=element_blank()) +
+  ylim(0,15) + 
+  theme(legend.position="bottom") +
+  theme(legend.title = element_blank()) +
+  labs(title = "Raw Data") +
+  theme(plot.title = element_text(size=10))
+
+expressionplot
+```
+
+## Boxplot to visualise if the arc transformations were good
+
+```{r}
+# arc transformations
+
+box1_arc = cbind(boxplot_tbl(z1_arc, index = 1), GSE36059_id)
+box2_arc = cbind(boxplot_tbl(z3_arc, index = 1), GSE46474_id)
+box3_arc = cbind(boxplot_tbl(z2_arc, index = 1), GSE48581_id)
+box4_arc = rbind(box1_arc, box2_arc, box3_arc)
+
+arcplot <-
+ggplot(data = box4_arc, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  xlab("Samples") +
+  theme(axis.title.y=element_blank()) +
+  labs(title = "Arcsine transformation + pairwise difference") +
+  theme(plot.title = element_text(size=10))
+
+arcplot
+```
+
+## boxplot to see if the log transformation was good
+
+```{r}
+box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
+box2_log = cbind(boxplot_tbl(z3_log, index = 1), GSE46474_id)
+box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
+box4_log = rbind(box1_log, box2_log, box3_log)
+
+logplot <-
+ggplot(data = box4_log, aes(x = object, y = means)) +
+  geom_point(aes(color = Dataset), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = Dataset), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  xlab("Samples") +
+  theme(axis.title.y=element_blank()) +
+  labs(title = "Log transformation + pairwise difference") +
+  theme(plot.title = element_text(size=10))
+
+logplot
+```
