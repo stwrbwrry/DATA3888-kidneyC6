@@ -13,8 +13,6 @@ library(shinythemes)
 # Define UI for application 
 shinyUI(
 
-  
-                  
     # Create a Navbar
     navbarPage(
       
@@ -26,7 +24,11 @@ shinyUI(
                           column(12, 
                                  fileInput("userFile", label = h3("File input")),
                                  verbatimTextOutput("fileInput")
-                                 )
+                                 ),
+                          column(12, 
+                                 fileInput("userFile", label = h3("File input")),
+                                 verbatimTextOutput("fileInput")
+                          )
                         )
                 ),
                tabPanel("CPOP Explained",

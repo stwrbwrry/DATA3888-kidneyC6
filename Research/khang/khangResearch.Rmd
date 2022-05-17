@@ -57,7 +57,6 @@ GSE48581 <-  readRDS("GSE48581.rds")
 #GSE15296 = getGEO("GSE15296")[[1]]
 ```
 
-## Khang play area
 
 # Create function for user input and compare with 3 datasets
 
@@ -70,7 +69,7 @@ calc_mode <- function(x){
   # Return the value with the highest occurrence
   distinct_values[which.max(distinct_tabulate)]
 }
-generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
+generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes){
   set.seed(3888)
   return(cpop_model(user,
         inhouse,
@@ -78,8 +77,8 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes ){
         inhouseOutcomes,
         w = NULL,
         n_features = 30,
-        n_iter = 20,
-        alpha = 1,
+        n_iter = 30,
+        alpha = 0,
         family = "binomial",
         s = "lambda.min",
         cpop2_break = TRUE,
@@ -218,6 +217,8 @@ z2 = exp_GSE48581 %>% as.matrix()
 z3 = exp_GSE46474 %>% as.matrix()
 userExpression <- userExpression %>% as.matrix()
 
+dim(userExpression)
+
 y1 = as.factor(p_GSE36059$diagnosis)
 y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
@@ -230,7 +231,7 @@ y3 = as.factor(p_GSE46474$diagnosis)
 ## CPOP RUN KHANG
 ```{r}
 
-feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
+feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
 feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
 feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
 
@@ -242,8 +243,8 @@ k1 <- c(sub("--.*", "", f1), sub(".*--", "", f1))
 k2 <- c(sub("--.*", "", f2), sub(".*--", "", f2))
 k3 <- c(sub("--.*", "", f3), sub(".*--", "", f3))
 
-rI <- intersect(k1,k2)
-rp <- intersect(rI,k3)
+rI <- intersect(f1,f2)
+rp <- intersect(rI,f3)
 # generateCPOPmodel(z1,y1,z2,y2)
 f1
 f2

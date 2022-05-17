@@ -10,7 +10,7 @@
 library(shiny)
 library(GEOquery) 
 
-# set upload size
+# set upload size of 150 mega bytes
 options(shiny.maxRequestSize=150*1024^2)
 
 # Define server logic
@@ -18,7 +18,7 @@ shinyServer(function(input, output) {
   output$carExample <- renderPrint({
         head(mtcars,7)
       })
-  
+  input
   output$titanicExample <- renderPrint({
     Titanic
   })
