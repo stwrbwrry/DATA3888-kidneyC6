@@ -15,6 +15,7 @@ shinyUI(
 
     # Create a Navbar
     navbarPage(
+      # TODO: loading bar for slow processing
       
       # get me the theme for website
       theme = shinytheme("sandstone"), 

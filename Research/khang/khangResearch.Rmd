@@ -37,24 +37,60 @@ library(sva)
 # GSE46474 = getGEO("GSE46474")[[1]]
 # GSE36059 = getGEO("GSE36059")[[1]]
 # GSE48581 = getGEO("GSE48581")[[1]]
-# 
+# The below is what the user uploads
+# GSE129166 = getGEO("GSE129166")[[1]]
+
+# write to file, TODO: For each object, please RDS to speed it up
 # saveRDS(GSE46474, file = "GSE46474.rds")
 # saveRDS(GSE36059, file = "GSE36059.rds")
-# saveRDS(GSE48581, file = "GSE48581.rds")
+# saveRDS(GSE129166, file = "GSE129166.rds")
 
 
 GSE46474 <- readRDS("GSE46474.rds")
 GSE36059 <-  readRDS("GSE36059.rds")
 GSE48581 <-  readRDS("GSE48581.rds")
+GSE129166 <- readRDS("GSE129166.rds")
 
+```
 
-# The below is what the user uploads
-# GSE129166 = getGEO("GSE129166")[[1]]
-# 
-# GSKhang = getGEO(")
-# slotNames(GSKhang)
-# The below is not important
-#GSE15296 = getGEO("GSE15296")[[1]]
+```{r}
+gene_names = function(gse) {
+  fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+  idx = which(!duplicated(fData(gse)$`Gene Symbol`) & !is.na(fData(gse)$`Gene Symbol`))
+  gse = gse[idx,] # get only rows that have a gene symbol that is unique, which enables the rownames
+  rownames(gse) = fData(gse)$`Gene Symbol`
+  
+  return(gse)
+}
+
+bridgegse <- GSE129166 # the dataset we want to get the gene symbols from
+
+fData(bridgegse)$`Gene Symbol` = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+idx = which(!duplicated(fData(bridgegse)$`Gene Symbol`) & !is.na(fData(bridgegse)$`Gene Symbol`))
+
+bridge <-  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
+
+# changes probe Ids into gene names
+transformProbeIds = function(df){
+  temp <- rownames(df)
+
+  rowIndexesToKeep <- c()
+  newRowNames <- c()
+  for(i in 1:length(temp)){
+    curIndex <- which(bridge$id == temp[i])
+    if( length(curIndex) == 1 ){
+      rowIndexesToKeep <-  c(rowIndexesToKeep, i)
+      newRowNames <- c(newRowNames, bridge[curIndex, "geneName"])
+    }
+  }
+  df <- df[rowIndexesToKeep,]
+  rownames(df) <- newRowNames
+  
+  return(df)
+}
+
 ```
 
 
@@ -94,9 +130,17 @@ rownames(userFile) <-  tolower(userFile[[1]])
 userFile <-  userFile[,-1]
 diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
 
+# separate for individual cleaning
 userExpression <- userFile[-diagnosisIndex,]
 userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
 
+# transform probe ids to gene names, will make userExpression smaller
+userExpression <- transformProbeIds(userExpression)
+```
+
+
+```{r}
+# I calculate the variance so I can get the userExpression to 2000 rows
 myVar = rowVars(as.matrix(userExpression), na.rm=TRUE)
 myVar = as.data.frame(myVar)
 
@@ -104,19 +148,32 @@ userExpression = cbind(userExpression, variance = myVar)
 userExpression = slice_max(userExpression, order_by = myVar, n = 2000)
 userExpression = subset(userExpression, select = -c(myVar))
 
+
+# length(rownames)
+
+
+# length(newRowNames)
+# length(rownames(userExpression))
+# rownames(userExpression) <- newRowNames
+# rownames(userExpression) = newRowNames
+```
+
+
+```{r}
 # get the row names (probe ids) before transpose
 row_names_UE= rownames(userExpression)
 
 userExpression <- as.data.frame(t(userExpression))
 
+# actually clean the userExpression matrix
 userExpression <- userExpression %>% mutate_if(is.numeric, ~replace_na(.,mean(., na.rm = TRUE)))
 
+# actually clean the NAs in userBinary Outcomes
 f <- calc_mode(userBinaryOutcomes)
 majorityClass <- as.numeric(levels(f))[f]
-
 userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
 
-
+# row.names(userExpression) <- newR
 # feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
 
 
@@ -124,6 +181,11 @@ userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
 ```
 
 ```{r}
+
+
+GSE46474 = gene_names(GSE46474)
+GSE36059 = gene_names(GSE36059)
+GSE48581 = gene_names(GSE48581)
 
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE36059 = (exprs(GSE36059))
@@ -143,11 +205,15 @@ row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe 
 # write.csv(exp_GSE129166,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
 
 ```{r}
+
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE46474 = (exprs(GSE46474))
+
 Variance = rowVars(as.matrix(exp_GSE46474))
 Variance = as.data.frame(Variance)
 exp_GSE46474 = as.data.frame(exp_GSE46474)
+
+
 exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
 exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 2000)
 exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
@@ -164,7 +230,6 @@ exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
 exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
 exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
-
 ```
 
 ```{r}
@@ -197,6 +262,10 @@ userExpression <-  subset(userExpression, select= c(intersection))
 
 ```{r}
 
+
+
+
+
 # CPOP stuff continued
 p_GSE46474 = pData(GSE46474) 
 p_GSE48581 = pData(GSE48581) 
@@ -217,6 +286,7 @@ y1 = as.factor(p_GSE36059$diagnosis)
 y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
 
+# TODO: Before running CPOP, change the expression matrix probe ids to gene names
 
 ### GSE36059
 ### GSE48581
