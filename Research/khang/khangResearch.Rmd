@@ -30,9 +30,10 @@ library(sva)
 
 ## Mukund CPOP analysis
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 #CPOP data
 
+# AMY, CHARLOTTE, LIAM, if anyone does this on their local computer, please
 # original import from server
 # GSE46474 = getGEO("GSE46474")[[1]]
 # GSE36059 = getGEO("GSE36059")[[1]]
@@ -50,10 +51,9 @@ GSE46474 <- readRDS("GSE46474.rds")
 GSE36059 <-  readRDS("GSE36059.rds")
 GSE48581 <-  readRDS("GSE48581.rds")
 GSE129166 <- readRDS("GSE129166.rds")
-
 ```
 
-```{r}
+```{r include=FALSE}
 gene_names = function(gse) {
   fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
 
@@ -66,11 +66,11 @@ gene_names = function(gse) {
 
 bridgegse <- GSE129166 # the dataset we want to get the gene symbols from
 
-fData(bridgegse)$`Gene Symbol` = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
 
-idx = which(!duplicated(fData(bridgegse)$`Gene Symbol`) & !is.na(fData(bridgegse)$`Gene Symbol`))
+idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
 
-bridge <-  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
+bridge =  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
 
 # changes probe Ids into gene names
 transformProbeIds = function(df){
@@ -90,13 +90,12 @@ transformProbeIds = function(df){
   
   return(df)
 }
-
 ```
 
 
 # Create function for user input and compare with 3 datasets
 
-```{r}
+```{r, include=FALSE}
 calc_mode <- function(x){
   # List the distinct / unique values
   distinct_values <- unique(x)
@@ -139,7 +138,7 @@ userExpression <- transformProbeIds(userExpression)
 ```
 
 
-```{r}
+```{r include=FALSE}
 # I calculate the variance so I can get the userExpression to 2000 rows
 myVar = rowVars(as.matrix(userExpression), na.rm=TRUE)
 myVar = as.data.frame(myVar)
@@ -159,7 +158,7 @@ userExpression = subset(userExpression, select = -c(myVar))
 ```
 
 
-```{r}
+```{r include=FALSE}
 # get the row names (probe ids) before transpose
 row_names_UE= rownames(userExpression)
 
@@ -180,8 +179,7 @@ userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
 
 ```
 
-```{r}
-
+```{r,include=FALSE}
 
 GSE46474 = gene_names(GSE46474)
 GSE36059 = gene_names(GSE36059)
@@ -204,7 +202,7 @@ row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe 
 
 # write.csv(exp_GSE129166,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
 
-```{r}
+```{r, include=FALSE}
 
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE46474 = (exprs(GSE46474))
@@ -232,14 +230,15 @@ exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
 ```
 
-```{r}
+```{r, include=FALSE}
 ## now find the most common probe ids names between 3 datasets
 intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
 intersection = intersect(intersection, row_names_exp_GSE48581)
 intersection = intersect(intersection, row_names_UE)
 ```
 
-```{r}
+```{r, include= FALSE}
+# create dataframes that only contains rows common in all dataframes
 
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection)) # select rows that contain the probe ids in intersection
@@ -250,21 +249,14 @@ exp_GSE46474 = subset(exp_GSE46474, select = c(intersection)) # select rows that
 exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
 exp_GSE48581 = subset(exp_GSE48581, select = c(intersection)) # select rows that contain the probe ids in intersection
 
-# create a dataframe that only contains rows common in all dataframes
-
 # no need to transpose as you already have done so above for user expression
-
 userExpression <-  subset(userExpression, select= c(intersection))
 ```
 
 
 ## getting the results vectors
 
-```{r}
-
-
-
-
+```{r, include= FALSE}
 
 # CPOP stuff continued
 p_GSE46474 = pData(GSE46474) 
@@ -293,6 +285,7 @@ y3 = as.factor(p_GSE46474$diagnosis)
 # these have reject + stable but categorized in more detail -> either have more groups that we are predicting, or we could do purely binary 
 ```
 ## CPOP RUN KHANG
+<!-- TODO: Implement this pairwise difference in shiny app -->
 ```{r}
 
 feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
@@ -306,14 +299,15 @@ f3 <- feature3$coef_tbl$coef_name[-1]
 rI <- intersect(f1,f2)
 stableFeatures <- intersect(rI,f3)
 # generateCPOPmodel(z1,y1,z2,y2)
-f1
-f2
-f3
-
+stableFeatures
 ```
 
 
-## running CPOP
+## VisNetwork!!
+
+
+
+## DRAFT RUN Everything below is just junk
 
 ```{r}
 #CPOP model
