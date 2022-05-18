@@ -67,39 +67,25 @@ GSE46474 = gene_names(GSE46474)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
 
+p_GSE46474 = pData(GSE46474) 
+p_GSE48581 = pData(GSE48581) 
+p_GSE36059 = pData(GSE36059) 
+
+
+# creating the outcome columns to put inside CPOP
+p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
+
 # Main server logic
 shinyServer(function(input, output) {
-  ## Our CPOP stuff
+
   
-  # withProgress(message = 'Loading', value = 0, {
-  #   
- 
-  # }) # brackets belongs to with progress
-  
- 
-  
-  
-  
- 
- 
  ## Put everything onto the shiny app screen UI
-  output$fileInput <- renderPrint({
+  output$fileInput <- renderText({
     
     if(!is.null(input$userFile)){
       userFile <- data.frame(read_csv(input$userFile$datapath, name_repair = "minimal"))
-      
-      
-      
-      # TODO: make this into an rds object that you can reference later
-      # bridgegse <- GSE46474 # the dataset we want to get the gene symbols from
-      # 
-      # affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
-      # 
-      # idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
-      
-      
-      # saveRDS(bridge, file = "../../shinyapp/data/bridge.rds")
-      
       
       
       
@@ -125,7 +111,10 @@ shinyServer(function(input, output) {
       
       
       # user inputs their file upload
-  
+      withProgress(message = 'Cleaning uploaded file', value = 0, {
+      n <- 3  
+        
+      incProgress(1/n, detail = paste("Just started"))
       rownames(userFile) <-  tolower(userFile[[1]])
       userFile <-  userFile[,-1]
       diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
@@ -150,17 +139,21 @@ shinyServer(function(input, output) {
       
       userExpression <- as.data.frame(t(userExpression))
       
+      incProgress(1/n, detail = paste("Cleaning user expression"))
       # actually clean the userExpression matrix
       userExpression <- userExpression %>% mutate_if(is.numeric, ~replace_na(.,mean(., na.rm = TRUE)))
       
+      incProgress(1/n, detail = paste("Cleaning binary outcomes"))
       # actually clean the NAs in userBinary Outcomes
       f <- calc_mode(userBinaryOutcomes)
       majorityClass <- as.numeric(levels(f))[f]
       userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
       
+      
+      
       # row.names(userExpression) <- newR
       # feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
-      
+      })
       
       
       
@@ -224,14 +217,6 @@ shinyServer(function(input, output) {
       userExpression <-  subset(userExpression, select= c(intersection))
       
       # CPOP stuff continued
-      p_GSE46474 = pData(GSE46474) 
-      p_GSE48581 = pData(GSE48581) 
-      p_GSE36059 = pData(GSE36059) 
-      
-      # creating the outcome columns to put inside CPOP
-      p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
-      p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
-      p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
       
       
       z1 = exp_GSE36059 %>% as.matrix() # used for box plots and CPOP
@@ -246,8 +231,8 @@ shinyServer(function(input, output) {
     
       withProgress(message = 'Generating CPOP', value = 0, {
         # Number of times we'll go through the loop
-        n <- 3
-        
+        n <- 4
+        incProgress(1/n, detail = paste("Starting CPOP 1/3"))
         feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
         incProgress(1/n, detail = paste("Finished CPOP 1/3"))
         feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)

@@ -129,7 +129,7 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes){
 ```
 
 
-```{r, include=FALSE}
+```{r}
 # user inputs their file upload
 userFile <- data.frame(read_csv('../Liam/Data/dirtyuser.csv', name_repair = "minimal"))
 rownames(userFile) <-  tolower(userFile[[1]])

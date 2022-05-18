@@ -29,7 +29,7 @@ shinyUI(
                           fluidRow(
                             column(12, 
                                    fileInput("userFile", label = h3("File input")),
-                                   textOutput("fileInput")
+                                   verbatimTextOutput("fileInput")
                             )),
                           fluidRow(
                             column(4,h3("Pairwise Genes"),
