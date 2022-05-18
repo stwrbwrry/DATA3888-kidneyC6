@@ -10,14 +10,20 @@ library(dplyr)
 library(CPOP)
 library(matrixStats)
 library(visNetwork)
-
+library(furrr)
+library(tictoc)
 
 library(shiny)
 library(GEOquery) 
 library(DT)
 
+# set up multi processing, works on khang's mac mini but remove workers if on server
+future::plan(multisession, workers=8)
+
 # set upload size of 150 mega bytes
 options(shiny.maxRequestSize=150*1024^2)
+
+
 
 # Load all the required rds files
 GSE46474 <- readRDS("data/GSE46474.rds")
@@ -44,12 +50,12 @@ gene_names = function(gse) {
   return(gse)
 }
 
-generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes){
-  set.seed(3888)
+set.seed(3888)
+generateCPOPmodel <- function(user,userOutcomes, inhouse){
   return(cpop_model(user,
-                    inhouse,
+                    inhouse[[1]], # inhouse[1] is the expression matrix only
                     userOutcomes,
-                    inhouseOutcomes,
+                    inhouse[[2]], #inhouse[2] is the inhouse Outcomes
                     w = NULL,
                     n_features = 30,
                     n_iter = 30,
@@ -85,6 +91,7 @@ shinyServer(function(input, output) {
   output$fileInput <- renderText({
     
     if(!is.null(input$userFile)){
+      tic("userFileUpload")
       userFile <- data.frame(read_csv(input$userFile$datapath, name_repair = "minimal"))
       
       
@@ -228,25 +235,26 @@ shinyServer(function(input, output) {
       y3 = as.factor(p_GSE46474$diagnosis)
       
     
-      withProgress(message = 'Generating CPOP', value = 0, {
-        # Number of times we'll go through the loop
-        n <- 4
-        incProgress(1/n, detail = paste("Starting CPOP 1/3"))
-        feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
-        incProgress(1/n, detail = paste("Finished CPOP 1/3"))
-        feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
-        incProgress(1/n, detail = paste("Finished CPOP 2/3"))
-        feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
-        incProgress(1/n, detail = paste("Finished CPOP 3/3"))
-        
-        
-      })
+      cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
+      # withProgress(message = 'Generating CPOP', value = 0, {
+      #   # Number of times we'll go through the loop
+      #   n <- 4
+      #   incProgress(1/n, detail = paste("Starting CPOP 1/3"))
+      #   feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
+      #   incProgress(1/n, detail = paste("Finished CPOP 1/3"))
+      #   feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
+      #   incProgress(1/n, detail = paste("Finished CPOP 2/3"))
+      #   feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
+      #   incProgress(1/n, detail = paste("Finished CPOP 3/3"))
+      #   
+      #   
+      # })
       
       
       
-      f1 <- feature1$coef_tbl$coef_name[-1] 
-      f2 <- feature2$coef_tbl$coef_name[-1]
-      f3 <- feature3$coef_tbl$coef_name[-1]
+      f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
+      f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
+      f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
       
       rI <- intersect(f1,f2)
       stableFeatures <- intersect(rI,f3)
@@ -254,9 +262,10 @@ shinyServer(function(input, output) {
       
       # after finding the stable features, get rows relevant in each dataframe and create your own data frame.
       # we will do a column bind
-      tb1 <-  feature1$coef_tbl[feature1$coef_tbl$coef_name %in% stableFeatures,]
-      tb2 <-  feature2$coef_tbl[feature2$coef_tbl$coef_name %in% stableFeatures,]
-      tb3 <-  feature3$coef_tbl[feature3$coef_tbl$coef_name %in% stableFeatures,]
+      tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% stableFeatures,]
+      tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% stableFeatures,]
+      tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stableFeatures,]
+      
       
       results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
       results$average <- rowMeans(results[,-1])
@@ -328,6 +337,7 @@ shinyServer(function(input, output) {
           data.frame(`Pairwise genes`=stableFeatures)
         })
       
+      toc(log=TRUE)
       
       return("Success!")
     }

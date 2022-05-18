@@ -95,8 +95,9 @@ calc_mode <- function(x){
   # Return the value with the highest occurrence
   distinct_values[which.max(distinct_tabulate)]
 }
-set.seed(3888)
+
 generateCPOPmodel <- function(user,userOutcomes, inhouse){
+  set.seed(3888)
   return(cpop_model(user,
         inhouse[[1]], # inhouse[1] is the expression matrix only
         userOutcomes,
@@ -264,7 +265,7 @@ y3 = as.factor(p_GSE46474$diagnosis)
 ```{r}
 future::plan(multisession, workers=8)
 tic()
-cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
+cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes)
 toc()
 ```
 
