@@ -33,7 +33,7 @@ library(sva)
 ```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 #CPOP data
 
-# AMY, CHARLOTTE, LIAM, if anyone does this on their local computer, please
+# AMY, CHARLOTTE, LIAM, if anyone does this on their local computer, uncomment the following
 # original import from server
 # GSE46474 = getGEO("GSE46474")[[1]]
 # GSE36059 = getGEO("GSE36059")[[1]]
@@ -299,11 +299,124 @@ f3 <- feature3$coef_tbl$coef_name[-1]
 rI <- intersect(f1,f2)
 stableFeatures <- intersect(rI,f3)
 # generateCPOPmodel(z1,y1,z2,y2)
-stableFeatures
+
+# after finding the stable features, get rows relevant in each dataframe and create your own data frame.
+# we will do a column bind
+tb1 <-  feature1$coef_tbl[feature1$coef_tbl$coef_name %in% stableFeatures,]
+tb2 <-  feature2$coef_tbl[feature2$coef_tbl$coef_name %in% stableFeatures,]
+tb3 <-  feature3$coef_tbl[feature3$coef_tbl$coef_name %in% stableFeatures,]
+
+results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
+results$average <- rowMeans(results[,-1])
+# resultTable$average
+# -0.12109045	-0.07927375	AGL--ANKRD22
+# -0.069795029	-0.025225051 AGL--ANKRD22
+# -0.07525255	-0.023783883
+# length(stableFeatures)
+
+coef = results$coef_name
 ```
 
 
 ## VisNetwork!!
+```{r}
+results = results %>% mutate(color = case_when( average > 0 ~ "blue", average < 0 ~ "red" ))
+names = data.frame(feature1 = rep("",length(coef)),
+                   feature2 = rep("",length(coef)),
+                   coef_size = abs(results$average))
+#names
+names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
+names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
+names$color = results$color
+# network = plot_lratio_network(coef, type = "visNetwork")
+#network
+names_uniq = unique(c(names$feature1, names$feature2))
+# names_uniq
+numbers = names
+#numbers
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature2[a] == names_uniq[i]) {
+      numbers$feature2[a] = i
+    }
+  }
+}
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature1[a] == names_uniq[i]) {
+      numbers$feature1[a] = i
+    }
+  }
+}
+#numbers
+clr = c()
+for (a in 1:length(names_uniq)) {
+  for (i in 1:nrow(names)) {
+    if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+      clr[a] = names$color[i]
+    }
+  }
+}
+#clr
+
+cleanNames <- sub("--.*","",names_uniq)
+
+
+edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+nodes = data.frame(id = c(1:length(names_uniq)), 
+                   label = names_uniq, 
+                   color = clr,
+                   title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+#nodes
+visNetwork(nodes, edges, height = "500px", width = "100%")
+```
+
+
+```{r}
+####KHNAG
+
+# names
+# use sub to substitute string only on first occurrence in coef
+names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
+names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
+names$color = results$color
+# network = plot_lratio_network(coef, type = "visNetwork")
+# network
+names_uniq = unique(c(names$feature1, names$feature2))
+names_uniq
+numbers = names
+numbers
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature2[a] == names_uniq[i]) {
+      numbers$feature2[a] = i # gives each feature an id number
+    }
+  }
+}
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature1[a] == names_uniq[i]) {
+      numbers$feature1[a] = i # gives each feature an id number
+    }
+  }
+}
+numbers
+clr = vector()
+for (a in 1:length(names_uniq)) {
+  for (i in 1:nrow(names)) {
+    if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+      clr[a] = names$color[i]
+    }
+  }
+}
+clr
+names
+edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+nodes = data.frame(id = c(1:length(names_uniq)), 
+                   label = names_uniq)
+visNetwork(nodes, edges, height = "500px", width = "100%")
+
+```
 
 
 
