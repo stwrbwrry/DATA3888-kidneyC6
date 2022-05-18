@@ -4,27 +4,14 @@ output: html_notebook
 ---
 
 ```{r, include=FALSE}
+library(GEOquery)
 library(tidyverse)
-library(devtools)
-library(ggplot2)
-library(tsfeatures)
-library(class)
-library(cvTools)
-library(randomForest)
-library(GEOquery) 
-library(R.utils)
-library(reshape2)
-library(limma)
 library(dplyr)
-library(e1071)
-library(DT)
-library(viridis)
-library(plotly)
-library(scales)
 library(CPOP)
 library(matrixStats)
 library(visNetwork)
-library(sva)
+library(furrr)
+library(tictoc)
 ```
 
 ## Mukund CPOP analysis
@@ -108,12 +95,12 @@ calc_mode <- function(x){
   # Return the value with the highest occurrence
   distinct_values[which.max(distinct_tabulate)]
 }
-generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes){
-  set.seed(3888)
+set.seed(3888)
+generateCPOPmodel <- function(user,userOutcomes, inhouse){
   return(cpop_model(user,
-        inhouse,
+        inhouse[[1]], # inhouse[1] is the expression matrix only
         userOutcomes,
-        inhouseOutcomes,
+        inhouse[[2]], #inhouse[2] is the inhouse Outcomes
         w = NULL,
         n_features = 30,
         n_iter = 30,
@@ -273,15 +260,23 @@ y3 = as.factor(p_GSE46474$diagnosis)
 ```
 ## CPOP RUN KHANG
 <!-- TODO: Implement this pairwise difference in shiny app -->
+
 ```{r}
+future::plan(multisession, workers=8)
+tic()
+cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
+toc()
+```
 
-feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
-feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
-feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
 
-f1 <- feature1$coef_tbl$coef_name[-1] 
-f2 <- feature2$coef_tbl$coef_name[-1]
-f3 <- feature3$coef_tbl$coef_name[-1]
+```{r}
+# feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z1,y1))
+# feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z2,y2))
+# feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z3,y3))
+
+f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
+f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
+f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
 
 rI <- intersect(f1,f2)
 stableFeatures <- intersect(rI,f3)
@@ -289,9 +284,10 @@ stableFeatures <- intersect(rI,f3)
 
 # after finding the stable features, get rows relevant in each dataframe and create your own data frame.
 # we will do a column bind
-tb1 <-  feature1$coef_tbl[feature1$coef_tbl$coef_name %in% stableFeatures,]
-tb2 <-  feature2$coef_tbl[feature2$coef_tbl$coef_name %in% stableFeatures,]
-tb3 <-  feature3$coef_tbl[feature3$coef_tbl$coef_name %in% stableFeatures,]
+tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% stableFeatures,]
+tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% stableFeatures,]
+tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stableFeatures,]
+
 
 results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
 results$average <- rowMeans(results[,-1])
@@ -358,7 +354,6 @@ nodes = data.frame(id = c(1:length(names_uniq)),
 #nodes
 
 visNetwork(nodes, edges, height = "500px", width = "100%")
-
 ```
 
 
