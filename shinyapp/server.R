@@ -88,7 +88,6 @@ shinyServer(function(input, output) {
       userFile <- data.frame(read_csv(input$userFile$datapath, name_repair = "minimal"))
       
       
-      
       # changes probe Ids into gene names
       transformProbeIds = function(df){
         temp <- rownames(df)
