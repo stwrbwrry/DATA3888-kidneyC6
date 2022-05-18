@@ -5,7 +5,6 @@ output: html_notebook
 
 ```{r, include=FALSE}
 library(tidyverse)
-library(tuneR)
 library(devtools)
 library(ggplot2)
 library(tsfeatures)
@@ -50,10 +49,23 @@ library(sva)
 GSE46474 <- readRDS("GSE46474.rds")
 GSE36059 <-  readRDS("GSE36059.rds")
 GSE48581 <-  readRDS("GSE48581.rds")
-GSE129166 <- readRDS("GSE129166.rds")
+# GSE129166 <- readRDS("GSE129166.rds")
 ```
 
 ```{r include=FALSE}
+
+
+# TODO: make this into an rds object that you can reference later
+bridgegse <- GSE46474 # the dataset we want to get the gene symbols from
+
+affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+
+idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
+
+bridge =  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
+# saveRDS(bridge, file = "../../shinyapp/data/bridge.rds")
+
+
 gene_names = function(gse) {
   fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
 
@@ -63,14 +75,6 @@ gene_names = function(gse) {
   
   return(gse)
 }
-
-bridgegse <- GSE129166 # the dataset we want to get the gene symbols from
-
-affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
-
-idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
-
-bridge =  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
 
 # changes probe Ids into gene names
 transformProbeIds = function(df){
@@ -122,8 +126,11 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse, inhouseOutcomes){
         cpop1_method = "normal",
         intercept = FALSE))
 }
+```
 
 
+```{r, include=FALSE}
+# user inputs their file upload
 userFile <- data.frame(read_csv('../Liam/Data/dirtyuser.csv', name_repair = "minimal"))
 rownames(userFile) <-  tolower(userFile[[1]])
 userFile <-  userFile[,-1]
@@ -135,10 +142,7 @@ userBinaryOutcomes <-  as.factor(unname(unlist(userFile[diagnosisIndex, ])))
 
 # transform probe ids to gene names, will make userExpression smaller
 userExpression <- transformProbeIds(userExpression)
-```
 
-
-```{r include=FALSE}
 # I calculate the variance so I can get the userExpression to 2000 rows
 myVar = rowVars(as.matrix(userExpression), na.rm=TRUE)
 myVar = as.data.frame(myVar)
@@ -147,18 +151,6 @@ userExpression = cbind(userExpression, variance = myVar)
 userExpression = slice_max(userExpression, order_by = myVar, n = 2000)
 userExpression = subset(userExpression, select = -c(myVar))
 
-
-# length(rownames)
-
-
-# length(newRowNames)
-# length(rownames(userExpression))
-# rownames(userExpression) <- newRowNames
-# rownames(userExpression) = newRowNames
-```
-
-
-```{r include=FALSE}
 # get the row names (probe ids) before transpose
 row_names_UE= rownames(userExpression)
 
@@ -184,7 +176,7 @@ userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
 GSE46474 = gene_names(GSE46474)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
-
+# TODO: save RDS object  of the exp_GSE expression dataframes
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE36059 = (exprs(GSE36059))
 
@@ -198,11 +190,7 @@ exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) # For each
 exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
 
 row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
-```
 
-# write.csv(exp_GSE129166,"/Users/khangnguyen/Desktop/userUploadData.csv", row.names = TRUE)
-
-```{r, include=FALSE}
 
 ## keeping only the 2000 most variable genes in my data frame 
 exp_GSE46474 = (exprs(GSE46474))
@@ -239,7 +227,6 @@ intersection = intersect(intersection, row_names_UE)
 
 ```{r, include= FALSE}
 # create dataframes that only contains rows common in all dataframes
-
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection)) # select rows that contain the probe ids in intersection
 
@@ -278,7 +265,7 @@ y1 = as.factor(p_GSE36059$diagnosis)
 y2 = as.factor(p_GSE48581$diagnosis)
 y3 = as.factor(p_GSE46474$diagnosis)
 
-# TODO: Before running CPOP, change the expression matrix probe ids to gene names
+
 
 ### GSE36059
 ### GSE48581
@@ -315,6 +302,8 @@ results$average <- rowMeans(results[,-1])
 # length(stableFeatures)
 
 coef = results$coef_name
+
+# saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
 ```
 
 
@@ -369,8 +358,6 @@ nodes = data.frame(id = c(1:length(names_uniq)),
 #nodes
 
 visNetwork(nodes, edges, height = "500px", width = "100%")
-
-
 
 ```
 
