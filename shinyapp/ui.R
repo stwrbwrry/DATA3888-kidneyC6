@@ -9,6 +9,10 @@
 
 library(shiny)
 library(shinythemes)
+library(visNetwork)
+library(DT)
+
+# options(shiny.autoreload = TRUE)
 
 # Define UI for application 
 shinyUI(
@@ -21,16 +25,24 @@ shinyUI(
       theme = shinytheme("sandstone"), 
       "Kidney Risk Calculator",
                tabPanel("DashBoard",
-                        fluidRow(
-                          column(12, 
-                                 fileInput("userFile", label = h3("File input")),
-                                 verbatimTextOutput("fileInput")
-                                 ),
-                          column(12, 
-                                 fileInput("userFile", label = h3("File input")),
-                                 verbatimTextOutput("fileInput")
+                        fluidPage(
+                          fluidRow(
+                            column(12, 
+                                   fileInput("userFile", label = h3("File input")),
+                                   verbatimTextOutput("fileInput")
+                            )),
+                          fluidRow(
+                            column(4,h3("Pairwise Genes"),
+
+                                   DT::dataTableOutput("pairwiseGenes")
+                                   
+                            ),
+                            column(8,h3("VisNetwork") ,
+                                   visNetworkOutput("userFileVisNetwork")
+                            )
                           )
                         )
+                        
                 ),
                tabPanel("CPOP Explained",
                         h2("Motor cars(DELETE)"),

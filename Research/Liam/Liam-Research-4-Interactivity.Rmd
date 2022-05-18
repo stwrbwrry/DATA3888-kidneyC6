@@ -30,10 +30,13 @@ library(visNetwork)
 ## Mukund CPOP analysis 
 ```{r}
 #CPOP data
-GSE46474 = getGEO("GSE46474")[[1]]
-GSE36059 = getGEO("GSE36059")[[1]]
-GSE48581 = getGEO("GSE48581")[[1]]
+# GSE46474 = getGEO("GSE46474")[[1]]
+# GSE36059 = getGEO("GSE36059")[[1]]
+# GSE48581 = getGEO("GSE48581")[[1]]
 
+GSE46474 <- readRDS("../khang/GSE46474.rds")
+GSE36059 <-  readRDS("../khang/GSE36059.rds")
+GSE48581 <-  readRDS("../khang/GSE48581.rds")
 
 # The below is what the user uploads
 # GSE129166 = getGEO("GSE129166")[[1]]

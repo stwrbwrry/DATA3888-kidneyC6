@@ -9,6 +9,7 @@
 
 library(shiny)
 library(GEOquery) 
+library(DT)
 
 # set upload size of 150 mega bytes
 options(shiny.maxRequestSize=150*1024^2)
@@ -37,5 +38,14 @@ shinyServer(function(input, output) {
     return(slotNames(inputFile))
   })
   
+  output$userFileVisNetwork <- renderVisNetwork({
+    readRDS("data/testVisnetwork.rds")
+  })
+  
+  output$pairwiseGenes <- DT::renderDataTable(
+    {
+      data.frame(GeneNames=c(1,2,3))
+    }
+  )
 
 })
