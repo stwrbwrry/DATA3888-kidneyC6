@@ -96,8 +96,8 @@ calc_mode <- function(x){
   distinct_values[which.max(distinct_tabulate)]
 }
 
+set.seed(3888)
 generateCPOPmodel <- function(user,userOutcomes, inhouse){
-  set.seed(3888)
   return(cpop_model(user,
         inhouse[[1]], # inhouse[1] is the expression matrix only
         userOutcomes,

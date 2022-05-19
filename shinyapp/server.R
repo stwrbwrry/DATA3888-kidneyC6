@@ -342,8 +342,6 @@ shinyServer(function(input, output) {
       return("Success!")
     }
     
-    # return("Success! ")
-    # return(input$userFile)
   })
   
   
@@ -355,17 +353,5 @@ shinyServer(function(input, output) {
     head(mtcars,7)
   })
   
-  
-  output$titanicExample <- renderPrint({
-    Titanic
-  })
-  
-  output$text <- renderText({
-    paste("Current Text value: ", input$text)
-  })
-  
-  output$slider <- renderText({
-    paste("Current Slider value: ", input$slider)
-  })
 
 })
