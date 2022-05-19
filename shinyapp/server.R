@@ -234,8 +234,11 @@ shinyServer(function(input, output) {
       y2 = as.factor(p_GSE48581$diagnosis)
       y3 = as.factor(p_GSE46474$diagnosis)
       
-    
+    withProgress(message = 'Executing CPOP', value = 0, {
+      incProgress(0.5, detail = paste("Starting CPOP in parallel"))
       cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
+    })
+      
       # withProgress(message = 'Generating CPOP', value = 0, {
       #   # Number of times we'll go through the loop
       #   n <- 4
@@ -353,5 +356,17 @@ shinyServer(function(input, output) {
     head(mtcars,7)
   })
   
+  
+  # data <- NULL
+  
+  output$downloadData <- downloadHandler(
+      filename = function() {
+        paste("stablePairwiseGenes-", Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) {
+        write_csv(data.frame(`Pairwise genes`=stableFeatures), file)
+      },
+      contentType = "text/csv"
+  )
 
 })

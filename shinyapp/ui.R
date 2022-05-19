@@ -22,15 +22,15 @@ shinyUI(
     navbarPage(
       
       # TODO: loading bar for slow processing
-      
+      "Kidney Risk Calculator",
       # get me the theme for website
       theme = shinytheme("sandstone"), 
-      "Kidney Risk Calculator",
+      
                tabPanel("DashBoard",
                         fluidPage(
                           fluidRow(
                             column(12, 
-                                   fileInput("userFile", label = h3("File input")),
+                                   fileInput("userFile", label = h3("Upload csv file")),
                                    verbatimTextOutput("fileInput")
                             )),
                           fluidRow(
@@ -42,8 +42,12 @@ shinyUI(
                             column(8,h3("VisNetwork") ,
                                    visNetworkOutput("userFileVisNetwork")
                             )
+                          ),
+                          fluidRow(
+                            column(2, p("Download your pairwise genes", style="font-weight:bold;")),
+                            column(6, downloadLink("downloadData", "Download CSV file"))
                           )
-                        )
+                        ),
                         
                 ),
                tabPanel("How it works!",
@@ -76,12 +80,11 @@ shinyUI(
                  
                )
       ),
-               
-               
-               hr(),
-               p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6")
+      footer = tagList(
+        hr(),
+        p("By Mukund, Liam, Charlotte, Amy, Khang. Group: KidneyC6", style="padding:0em 0em 0em 1em")
+      )
       
-      
-    )
-    
+
+    ) # belongs to navbarPage
 )
