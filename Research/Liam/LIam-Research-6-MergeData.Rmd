@@ -287,7 +287,53 @@ write.csv(joined, "combined_dataset.csv")
 
 
 ```{r}
-# TODO: PCA plot for 46474
+# Assumes input dataframe is already sanitized
+calculate_gender = function(dataframe) {
+  colnames(dataframe) = lower(colnames(dataframe))
+  outcome = NULL
+  if ("outcome" %in% colnames(dataframe)) {
+    outcome = dataframe$outcome
+    dataframe = select(dataframe, -one_of("outcome"))
+}
+  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "ankrd44" %in% colnames(dataframe)) {
+    outcome_df = dataframe %>% select(xist, eif1ay, ankrd44)
+    outcome_df = dataframe + 1
+    outcome_df = log(outcome_df)
+    outcome_df = pairwise_col_diff(outcome_df) %>% as.matrix()
+    outcome_df = data.frame(outcome_df)
+    
+    # Can replace this with an already preprocessed dataframe
+    known_genes = c("xist", "eif1ay", "ankrd44")
+    p_GSE46474 = pData(GSE46474)
+    p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
+    exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
+    colnames(exprs_GSE46474) = lower(colnames(exprs_GSE46474))
+    exprs_GSE46474 = exprs_GSE46474 %>% select(known_genes)
+    exprs_GSE46474 = exprs_GSE46474 + 1
+    exprs_GSE46474 = log(exprs_GSE46474)
+    exprs_GSE46474 = pairwise(exprs_GSE46474) %>% as.matrix()
+    exprs_GSE46474 = data.frame(exprs_GSE46474)
+    
+    model = knn(exprs_GSE46474, outcome_df, p_GSE46474$outcome, k = 3)
+    
+    dataframe$gender = model
+    dataframe$outcome = outcome
+    
+    return(dataframe)
+    
+  }
+  
+  return(NULL)
+}
 ```
+
+```{r}
+# TODO: Combine all datasets function
+```
+
+```{r}
+# Show boxplot for expression levels for each gene split by source dataset
+```
+
 
 
