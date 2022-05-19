@@ -44,6 +44,7 @@ shinyUI(
                             )
                           ),
                           fluidRow(
+                            column(12, br()),
                             column(2, p("Download your pairwise genes", style="font-weight:bold;")),
                             column(6, downloadLink("downloadData", "Download CSV file"))
                           )
@@ -51,7 +52,7 @@ shinyUI(
                         
                 ),
                tabPanel("How it works!",
-                        h2("Motor cars(DELETE)")
+                        h2("Figure 1")
                         ),
       tabPanel("Datasets explained",
                fluidPage(
