@@ -8,11 +8,13 @@
 #
 
 library(shiny)
+library(shinyjs)
 library(shinythemes)
 library(visNetwork)
 library(DT)
 
 # options(shiny.autoreload = TRUE)
+
 
 
 # Define UI for application 
@@ -30,6 +32,12 @@ shinyUI(
                         fluidPage(
                           fluidRow(
                             column(12, 
+                                   tags$h2("Purpose"),
+                                   tags$p("Description: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."), useShinyjs()
+                            )),
+                          
+                          fluidRow(
+                            column(12, 
                                    fileInput("userFile", label = h3("Upload csv file")),
                                    verbatimTextOutput("fileInput")
                             )),
@@ -42,13 +50,61 @@ shinyUI(
                             column(8,h3("VisNetwork") ,
                                    visNetworkOutput("userFileVisNetwork")
                             )
-                          ),
-                          fluidRow(
+                          ),fluidRow(
                             column(12, br()),
                             column(2, p("Download your pairwise genes", style="font-weight:bold;")),
                             column(6, downloadLink("downloadData", "Download CSV file"))
                           )
-                        ),
+                          ,fluidRow(
+                            column(4,h5("Want to see how your dataset compares to public datasets?")
+                            ),
+                            column(4, actionButton(inputId = "showHide", label = "show / hide"))
+                            
+                          ), fluidRow(
+                            column(4,
+                                   hidden(
+                                    div(id="v1box", h4("GSE36059 vs uploaded data"),
+                                        visNetworkOutput( "v1")
+                                        ) 
+                                     )
+                            ),
+                            column(4 ,
+                                   hidden(
+                                     div(id="v2box",h4("GSE48581 vs uploaded data"),
+                                         visNetworkOutput( "v2")
+                                         )
+                                     )
+                            ),
+                            column(4 ,
+                                   hidden(
+                                     div(id="v3box",h4("GSE46474 vs uploaded data"),
+                                         visNetworkOutput( "v3")
+                                     )
+                                   )
+                            )
+                          ),
+                          fluidRow(
+                            column(12, tags$h2("Dataset combination section:",style="font-weight:bold;")),
+                            column(12, tags$p("The purpose of this section of our dashboard is to combine user uploaded in-house data with existing public datasets. This is to allow the researcher to have more samples to work with during their analysis and model building by leveraging historic research. ")), 
+                            column(12, tags$p("Before combining the uploaded in-house data and public data, we apply a normalization procedure. This is done by first taking the log of all expression values, and then taking the pairwise differences of the top overlapping genes between all datasets. The transformed expression boxplot visualizes how the normalization process alleviates batch-differences.")),
+                            column(12, tags$p("Another issue we aim to solve is the lack of clinical variables present in historic expression data. By extracting key gender-specific expression biomarkers, we are able to predict gender outcomes "))
+                          ),
+                          fluidRow(
+                            column(12, tags$h4("Boxplot - highlights normalisation",style="font-weight:bold;")),
+                            column(12,
+                                   plotOutput("boxplot", click="plot_click")
+                                   )
+                          ),
+                          fluidRow(
+                            column(12, br()),
+                            column(7, selectInput("select", label = tags$p("Choose gender to include in combined dataset",style="font-weight:bold;"), 
+                                                  choices = list("Both" = 1, "Male" = 2, "Female" = 3), selected = 1)),
+                            column(12, br()),
+                            column(2, p("Then click the download link", style="font-weight:bold;")),
+                            column(6, downloadLink("downloadCombinedData", "Download combined data CSV file"))
+                            )
+                           
+                        ),# belongs to fluidPage
                         
                 ),
                tabPanel("How it works!",

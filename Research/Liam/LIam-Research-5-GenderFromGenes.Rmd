@@ -79,7 +79,7 @@ pairwise_preprocess = function(exp_GSE, top_x) {
 
 
 ```{r}
-pairwise = function(exp_GSE, intersection, transform_type) {
+pairwise = function(exp_GSE, transform_type) {
   
   #exp_GSE = subset(exp_GSE, select = c(intersection))
   
