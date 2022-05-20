@@ -201,6 +201,8 @@ p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure sta
 shinyServer(function(input, output) {
 
   combinedDataset <- NULL
+  stableFeatures <- NULL
+  
  ## Put everything onto the shiny app screen UI
   output$fileInput <- renderText({
     
@@ -460,8 +462,42 @@ shinyServer(function(input, output) {
   })
   
   observeEvent(input$select, {
-    if(input$select == 1 && !is.null(combinedDataset)){
-      print("hey select")
+    
+    
+    if(input$select == 1 ){
+      # print("downloading");
+      output$downloadCombinedData <- downloadHandler(
+        filename = function() {
+          paste("maleAndFemaleCombinedDataset-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+          write_csv(as.data.frame(combinedDataset), file)
+        },
+        contentType = "text/csv"
+      )
+      
+    }
+    else if (input$select == 2){
+      output$downloadCombinedData <- downloadHandler(
+        filename = function() {
+          paste("maleDataset-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+          write_csv(as.data.frame(combinedDataset[which(combinedDataset$gender == 0),]), file)
+        },
+        contentType = "text/csv"
+      )
+    }
+    else if (input$select == 3){
+      output$downloadCombinedData <- downloadHandler(
+        filename = function() {
+          paste("femaleDataset-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+          write_csv(as.data.frame(combinedDataset[which(combinedDataset$gender == 1),]), file)
+        },
+        contentType = "text/csv"
+      )
     }
   })
   
