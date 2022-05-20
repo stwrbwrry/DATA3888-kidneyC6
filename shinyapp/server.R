@@ -393,7 +393,7 @@ shinyServer(function(input, output) {
           data.frame(`Pairwise genes`=stableFeatures)
         })
       
-      
+      withProgress(message = 'Finished CPOP! Now combining data', value = 0, { 
       # Add gender and source column to each of the 4 data frames
       ue <- pairwise(userExpression, "Log")
       temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
@@ -423,13 +423,15 @@ shinyServer(function(input, output) {
       temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
       temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
       
-      
+      incProgress(0.5, detail = paste("Combining all the data"))
       
       combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
       
       colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
       
       compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
+      })
+      
       
       output$boxplot <- renderPlot({
         ggplot(data = compareCombinedData, aes(x = object, y = means)) +
@@ -447,6 +449,32 @@ shinyServer(function(input, output) {
       })
       
       
+      output$dc <- downloadHandler(filename = function() {
+        if(input$select == 1){
+          paste("maleAndFemaleCombinedDataset-", Sys.Date(), ".csv", sep="")
+        }
+        else if (input$select == 2){
+          paste("maleDataset-", Sys.Date(), ".csv", sep="")
+        }
+        else if (input$select == 3){
+          paste("femaleDataset-", Sys.Date(), ".csv", sep="")
+        }
+        
+      },
+      content = function(file) {
+        if(input$select == 1){
+          write_csv(combinedDataset, file)
+        }
+        else if (input$select == 2){
+          write_csv(combinedDataset[which(combinedDataset$gender == 0),], file)
+        }
+        else if (input$select == 3){
+          write_csv(combinedDataset[which(combinedDataset$gender == 1),], file)
+        }
+      },
+      contentType = "text/csv"
+      )
+      
       
       toc(log=TRUE)
       
@@ -461,47 +489,6 @@ shinyServer(function(input, output) {
       shinyjs::toggle("v3box")
   })
   
-  observeEvent(input$select, {
-    
-    
-    if(input$select == 1 ){
-      # print("downloading");
-      output$downloadCombinedData <- downloadHandler(
-        filename = function() {
-          paste("maleAndFemaleCombinedDataset-", Sys.Date(), ".csv", sep="")
-        },
-        content = function(file) {
-          write_csv(as.data.frame(combinedDataset), file)
-        },
-        contentType = "text/csv"
-      )
-      
-    }
-    else if (input$select == 2){
-      output$downloadCombinedData <- downloadHandler(
-        filename = function() {
-          paste("maleDataset-", Sys.Date(), ".csv", sep="")
-        },
-        content = function(file) {
-          write_csv(as.data.frame(combinedDataset[which(combinedDataset$gender == 0),]), file)
-        },
-        contentType = "text/csv"
-      )
-    }
-    else if (input$select == 3){
-      output$downloadCombinedData <- downloadHandler(
-        filename = function() {
-          paste("femaleDataset-", Sys.Date(), ".csv", sep="")
-        },
-        content = function(file) {
-          write_csv(as.data.frame(combinedDataset[which(combinedDataset$gender == 1),]), file)
-        },
-        contentType = "text/csv"
-      )
-    }
-  })
-  
-  
   
   
   # Rubbish below for the other tab pages. Can delete or refactor.
@@ -510,7 +497,8 @@ shinyServer(function(input, output) {
   })
   
   
-  # data <- NULL
+  
+  
   
   output$downloadData <- downloadHandler(
       filename = function() {

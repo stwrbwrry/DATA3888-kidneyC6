@@ -53,7 +53,7 @@ shinyUI(
                           ),fluidRow(
                             column(12, br()),
                             column(2, p("Download your pairwise genes", style="font-weight:bold;")),
-                            column(6, downloadLink("downloadData", "Download CSV file"))
+                            column(6, downloadButton("downloadData", "Download pairwise genes CSV file"))
                           )
                           ,fluidRow(
                             column(4,h5("Want to see how your dataset compares to public datasets?")
@@ -101,7 +101,7 @@ shinyUI(
                                                   choices = list("Both" = 1, "Male" = 2, "Female" = 3), selected = 1)),
                             column(12, br()),
                             column(2, p("Then click the download link", style="font-weight:bold;")),
-                            column(6, downloadLink("downloadCombinedData", "Download combined data CSV file"))
+                            column(6, downloadButton("dc", "Download combined data CSV file"))
                             )
                            
                         ),# belongs to fluidPage
