@@ -18,7 +18,7 @@ library(GEOquery)
 library(DT)
 
 # set up multi processing, works on khang's mac mini but remove workers if on server
-future::plan(multisession, workers=8)
+future::plan(multisession)
 
 # set upload size of 150 mega bytes
 options(shiny.maxRequestSize=150*1024^2)
