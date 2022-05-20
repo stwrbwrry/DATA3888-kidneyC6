@@ -481,7 +481,10 @@ ggplot(data = compareCombinedData, aes(x = object, y = means)) +
 ```{r}
 # Now give me male only from combinedDataset
 
-combinedDataset
+combinedDataset[which(combinedDataset$gender == 0),]
+
+# Female only
+combinedDataset[which(combinedDataset$gender == 1),]
 
 ```
 
