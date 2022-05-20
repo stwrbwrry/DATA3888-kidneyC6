@@ -114,7 +114,7 @@ makeVisnetwork <- function(cpopDF){
   nodes = data.frame(id = c(1:length(names_uniq)), 
                      label = names_uniq, 
                      # color = clr,
-                     title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+                     title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
   #nodes
   
   return(visNetwork(nodes, edges, height = "500px", width = "100%"))
