@@ -4,31 +4,16 @@ output: html_notebook
 ---
 
 ```{r, include=FALSE}
+library(GEOquery)
 library(tidyverse)
-library(tuneR)
-library(devtools)
-library(ggplot2)
-library(tsfeatures)
-library(class)
-library(cvTools)
-library(randomForest)
-library(GEOquery) 
-library(R.utils)
-library(reshape2)
-library(limma)
 library(dplyr)
-library(e1071)
-library(DT)
-library(viridis)
-library(plotly)
-library(scales)
 library(CPOP)
 library(matrixStats)
 library(visNetwork)
-
-
 library(furrr)
 library(tictoc)
+library(class)
+library(ggplot2)
 ```
 
 ## Mukund CPOP analysis
@@ -386,9 +371,11 @@ pairwise = function(exp_GSE, transform_type) {
     z = pairwise_col_diff(z) %>% as.matrix()
   }
   else if (transform_type == "Log") {
-    z = z + 1
-    z = log(z)
-    z = pairwise_col_diff(z) %>% as.matrix()
+    # z = log(z +1)
+    # removing weird AGL name added.
+    z <- pairwise_col_diff(log(z +1))
+    colnames(z) <- sub(".*\\.","",colnames(z))
+    z = z %>% as.matrix()
   }
   else if (transform_type == "Pair"){
     z = z %>% as.matrix()
@@ -400,18 +387,18 @@ pairwise = function(exp_GSE, transform_type) {
   return(z)
   
 }
-
+# returns gender vector
 calculate_gender = function(dataframe) {
   colnames(dataframe) = tolower(colnames(dataframe))
-  outcome = NULL
-  if ("outcome" %in% colnames(dataframe)) {
-    outcome = dataframe$outcome
-    dataframe = select(dataframe, -one_of("outcome"))
-}
+  # outcome = NULL
+#   if ("outcome" %in% colnames(dataframe)) {
+#     outcome = dataframe$outcome
+#     dataframe = select(dataframe, -one_of("outcome"))
+# }
   if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "ankrd44" %in% colnames(dataframe)) {
-    known_genes = c("xist", "eif1ay", "ankrd44")
+    # known_genes =  c()
     
-    outcome_df = dataframe %>% select(known_genes)
+    outcome_df = dataframe %>% select("xist", "eif1ay","ankrd44")
     outcome_df = pairwise(outcome_df, transform_type = "Log") %>% as.matrix()
     outcome_df = data.frame(outcome_df)
     
@@ -421,7 +408,7 @@ calculate_gender = function(dataframe) {
     p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
     exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
     colnames(exprs_GSE46474) = tolower(colnames(exprs_GSE46474))
-    exprs_GSE46474 = exprs_GSE46474 %>% select(known_genes)
+    exprs_GSE46474 = exprs_GSE46474 %>% select("xist", "eif1ay","ankrd44")
     exprs_GSE46474 = pairwise(exprs_GSE46474, transform_type="Log") %>% as.matrix()
     exprs_GSE46474 = data.frame(exprs_GSE46474)
 
@@ -430,31 +417,71 @@ calculate_gender = function(dataframe) {
     
     model = knn(exprs_GSE46474, outcome_df, p_GSE46474$outcome, k = 3)
     
-    dataframe$gender = model
-    dataframe$outcome = outcome
+    # dataframe$gender = model
+    # dataframe$outcome = outcome
     
-    return(dataframe)
+    return(model)
     
   }
   return(NULL)
 }
 
+# saveRDS(userExpression, "ue.rds")
+# userExpression <- readRDS("ue.rds")
+
 # Add gender and source column to each of the 4 data frames
-testInput <- as.data.frame(userExpression)
-userExpression <- calculate_gender(testInput)
-userExpression$source <- c(rep("userUploadedData", length(rownames(userExpression))))
-
-exp_GSE36059 <- calculate_gender(exp_GSE36059)
-exp_GSE36059$source <- c(rep("public", length(rownames(exp_GSE36059))))
+ue <- pairwise(userExpression, "Log")
+ue$outcome <- userBinaryOutcomes
+ue$gender <- calculate_gender(as.data.frame(userExpression))
+ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
 
 
-exp_GSE48581 <- calculate_gender(exp_GSE48581)
-exp_GSE48581$source <- c(rep("public", length(rownames(exp_GSE48581))))
+temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+temp_GSE36059$outcome <- y1
+temp_GSE36059$gender <- calculate_gender(exp_GSE36059)
+temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
 
 
-exp_GSE46474 <- calculate_gender(exp_GSE46474)
-exp_GSE46474$source <- c(rep("public", length(rownames(exp_GSE46474))))
+temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+temp_GSE48581$outcome <- y2
+temp_GSE48581$gender <- calculate_gender(exp_GSE48581)
+temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
 
+temp_GSE46474 <- pairwise(exp_GSE46474, "Log")
+temp_GSE46474$outcome <- y3
+temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
+temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
+
+
+
+combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
+ 
+colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
+```
+
+```{r}
+# TODO: the colourful boxplot for the combined dataset, and colour by the source
+little <- combinedDataset %>% select(-"outcome",-"source",-"gender") %>% as.matrix()
+
+
+combinedDataset %>% select_if(negate(is.numeric))
+khangTable <- boxplot_tbl(little, index =1)
+box4_log = cbind(khangTable, source= combinedDataset$source)
+# combinedDataset$samples <- rownames(combinedDataset)
+
+
+ggplot(data = box4_log, aes(x = object, y = means)) +
+  geom_point(aes(color = source), size = 0.1) +
+  geom_errorbar(aes(ymin = q1,
+                    ymax = q3,
+                    color = source), size = 0.1,  alpha = 0.2) +
+  ggsci::scale_color_d3() +
+  theme(axis.ticks = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  xlab("Samples") +
+  theme(axis.title.y=element_blank()) +
+  labs(title = "Log transformation + pairwise difference") +
+  theme(plot.title = element_text(size=10))
 
 
 ```
@@ -463,4 +490,5 @@ exp_GSE46474$source <- c(rep("public", length(rownames(exp_GSE46474))))
 
 
 
+#Bottom
 

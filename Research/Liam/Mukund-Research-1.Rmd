@@ -2,7 +2,7 @@
 title: "Liam Research 1"
 output: html_notebook
 ---
-
+#TOP
 ```{r, include=FALSE}
 library(tidyverse)
 library(tuneR)
@@ -114,10 +114,15 @@ Also no clinical data
 ## Mukund CPOP analysis
 ```{r}
 #CPOP data
+# 
+# GSE36059 = getGEO("GSE36059")[[1]]
+# GSE48581 = getGEO("GSE48581")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]]
 
-GSE36059 = getGEO("GSE36059")[[1]]
-GSE48581 = getGEO("GSE48581")[[1]]
-GSE129166 = getGEO("GSE129166")[[1]]
+GSE46474 <- readRDS("../khang/GSE46474.rds")
+GSE36059 <-  readRDS("../khang/GSE36059.rds")
+GSE48581 <-  readRDS("../khang/GSE48581.rds")
+GSE129166 <-  readRDS("../khang/GSE129166.rds")
 #GSE15296 = getGEO("GSE15296")[[1]]
 
 
@@ -156,19 +161,19 @@ exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
 exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
-#129166
-exp_GSE129166 = (exprs(GSE129166)) #blood
-Variance = rowVars(as.matrix(exp_GSE129166))
-Variance = as.data.frame(Variance)
-exp_GSE129166 = as.data.frame(exp_GSE129166)
-exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
-exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
-exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
-row_names_exp_GSE129166 = rownames(exp_GSE129166)
+# #129166
+# exp_GSE129166 = (exprs(GSE129166)) #blood
+# Variance = rowVars(as.matrix(exp_GSE129166))
+# Variance = as.data.frame(Variance)
+# exp_GSE129166 = as.data.frame(exp_GSE129166)
+# exp_GSE129166 = cbind(exp_GSE129166, variance = Variance)
+# exp_GSE129166 = slice_max(exp_GSE129166, order_by = Variance, n = 2000)
+# exp_GSE129166 = subset(exp_GSE129166, select = -c(Variance))
+# row_names_exp_GSE129166 = rownames(exp_GSE129166)
 
 intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
 intersection = intersect(intersection, row_names_exp_GSE48581)
-intersection = intersect(intersection, row_names_exp_GSE129166)
+# intersection = intersect(intersection, row_names_exp_GSE129166)
 
 exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
 exp_GSE36059 = subset(exp_GSE36059, select = c(intersection))
@@ -179,18 +184,18 @@ exp_GSE46474 = subset(exp_GSE46474, select = c(intersection))
 exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
 exp_GSE48581 = subset(exp_GSE48581, select = c(intersection))
 
-exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
-exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
+# exp_GSE129166 = as.data.frame(t(as.matrix(exp_GSE129166)))
+# exp_GSE129166 = subset(exp_GSE129166, select = c(intersection))
 
 GSE36059_id <- data.frame("Dataset" = rep("GSE36059",nrow(exp_GSE36059)))
 GSE46474_id <- data.frame("Dataset" = rep("GSE46474",nrow(exp_GSE46474)))
 GSE48581_id <- data.frame("Dataset" = rep("GSE48581",nrow(exp_GSE48581)))
-GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
+# GSE129166_id <- data.frame("Dataset" = rep("GSE129166",nrow(exp_GSE129166)))
 
 z1 = exp_GSE36059 %>% as.matrix()
 z3 = exp_GSE46474 %>% as.matrix()
 z2 = exp_GSE48581 %>% as.matrix()
-z4 = exp_GSE129166 %>% as.matrix()
+# z4 = exp_GSE129166 %>% as.matrix()
 ## arcsine transformation
 
 exp_GSE36059_arc <- exp_GSE36059
@@ -228,14 +233,15 @@ exp_GSE48581_log <- exp_GSE48581
 exp_GSE48581_log = exp_GSE48581_log + 1
 exp_GSE48581_log = log(exp_GSE48581_log)
 
-exp_GSE129166_log <- exp_GSE129166
-exp_GSE129166_log = exp_GSE129166_log + 1
-exp_GSE129166_log = log(exp_GSE129166_log)
-
+# exp_GSE129166_log <- exp_GSE129166
+# exp_GSE129166_log = exp_GSE129166_log + 1
+# exp_GSE129166_log = log(exp_GSE129166_log)
+bb <- pairwise_col_diff(exp_GSE36059_log)
+# colnames(bb)
 z1_log = pairwise_col_diff(exp_GSE36059_log) %>% as.matrix()
 z3_log = pairwise_col_diff(exp_GSE46474_log) %>% as.matrix()
-z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix()
-z4_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
+z2_log = pairwise_col_diff(exp_GSE48581_log) %>% as.matrix() 
+# z4_log = pairwise_col_diff(exp_GSE129166_log) %>% as.matrix()
 
 
 ```
@@ -294,9 +300,11 @@ arcplot
 ## boxplot to see if the log transformation was good
 ```{r}
 box1_log = cbind(boxplot_tbl(z1_log, index = 1), GSE36059_id)
-box2_log = cbind(boxplot_tbl(z4_log, index = 1), GSE129166_id)
+# box2_log = cbind(boxplot_tbl(z4_log, index = 1), GSE129166_id)
 box3_log = cbind(boxplot_tbl(z2_log, index = 1), GSE48581_id)
-box4_log = rbind(box1_log, box2_log, box3_log)
+box4_log = rbind(box1_log, box3_log)
+
+colnames(box4_log)
 
 logplot <-
 ggplot(data = box4_log, aes(x = object, y = means)) +
@@ -312,7 +320,7 @@ ggplot(data = box4_log, aes(x = object, y = means)) +
   labs(title = "Log transformation + pairwise difference") +
   theme(plot.title = element_text(size=10))
 
-logplot
+# logplot
 ```
 ## getting the results vectors for only reject or stable
 ```{r}
