@@ -45,13 +45,13 @@ GSE48581 <-  readRDS("GSE48581.rds")
 
 
 # TODO: make this into an rds object that you can reference later
-bridgegse <- GSE46474 # the dataset we want to get the gene symbols from
+# bridgegse <- GSE46474 # the dataset we want to get the gene symbols from
+# 
+# affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
+# 
+# idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
 
-affymetrixGenes = unlist(lapply(strsplit(fData(bridgegse)$`Gene Symbol`, " /// ", 1), `[`, 1))
-
-idx = which(!duplicated(affymetrixGenes) & !is.na(affymetrixGenes))
-
-bridge =  data.frame(id = fData(bridgegse)$ID[idx], geneName= affymetrixGenes[idx])
+bridge =  readRDS("bridge.rds")
 # saveRDS(bridge, file = "../../shinyapp/data/bridge.rds")
 
 
@@ -119,7 +119,7 @@ generateCPOPmodel <- function(user,userOutcomes, public){
 ```
 
 
-```{r}
+```{r include=FALSE}
 # user inputs their file upload
 userFile <- data.frame(read_csv('../Liam/Data/dirtyuser.csv', name_repair = "minimal"))
 rownames(userFile) <-  tolower(userFile[[1]])
@@ -264,11 +264,11 @@ y3 = as.factor(p_GSE46474$diagnosis)
 ## CPOP RUN KHANG
 <!-- TODO: Implement this pairwise difference in shiny app -->
 
-```{r}
+```{r include=FALSE}
 future::plan(multisession)
-tic()
+
 cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes)
-toc()
+
 ```
 
 
@@ -289,6 +289,10 @@ tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stabl
 
 
 results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
+
+
+  
+
 results$average <- rowMeans(results[,-1])
 # resultTable$average
 # -0.12109045	-0.07927375	AGL--ANKRD22
@@ -298,63 +302,78 @@ results$average <- rowMeans(results[,-1])
 
 coef = results$coef_name
 
+# makeVisnetwork(results)
+# makeVisnetwork(cpopOutputs[[1]]$coef_tbl)
+# makeVisnetwork(cpopOutputs[[3]]$coef_tbl)
 # saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
 ```
 
 
 ## VisNetwork!!
 ```{r}
-results = results %>% mutate(color = case_when( average > 0 ~ "turquoise", average < 0 ~ "orange" ))
-names = data.frame(feature1 = rep("",length(coef)),
+makeVisnetwork <- function(cpopDF){
+  cpopDF$average <- rowMeans(cpopDF[,-1])
+  coef <- cpopDF$coef_name
+  names = data.frame(feature1 = rep("",length(coef)),
                    feature2 = rep("",length(coef)),
-                   coef_size = abs(results$average))
-#names
-names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
-names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
-names$color = results$color
-# network = plot_lratio_network(coef, type = "visNetwork")
-#network
-names_uniq = unique(c(names$feature1, names$feature2))
-# names_uniq
-numbers = names
-#numbers
-for (a in 1:nrow(numbers)) {
-  for (i in 1:length(names_uniq)) {
-    if (numbers$feature2[a] == names_uniq[i]) {
-      numbers$feature2[a] = i
+                   coef_size = abs(cpopDF$average))
+  #names
+  names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the cpopDF df
+  names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the cpopDF df
+  # names$color = results$color
+  # network = plot_lratio_network(coef, type = "visNetwork")
+  #network
+  names_uniq = unique(c(names$feature1, names$feature2))
+  # names_uniq
+  numbers = names
+  #numbers
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature2[a] == names_uniq[i]) {
+        numbers$feature2[a] = i
+      }
     }
   }
-}
-for (a in 1:nrow(numbers)) {
-  for (i in 1:length(names_uniq)) {
-    if (numbers$feature1[a] == names_uniq[i]) {
-      numbers$feature1[a] = i
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature1[a] == names_uniq[i]) {
+        numbers$feature1[a] = i
+      }
     }
   }
-}
-#numbers
-clr = c()
-for (a in 1:length(names_uniq)) {
-  for (i in 1:nrow(names)) {
-    if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
-      clr[a] = names$color[i]
+  #numbers
+  clr = c()
+  for (a in 1:length(names_uniq)) {
+    for (i in 1:nrow(names)) {
+      if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+        clr[a] = names$color[i]
+      }
     }
   }
+  #clr
+  
+  cleanNames <- sub("--.*","",names_uniq)
+  
+  edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+  nodes = data.frame(id = c(1:length(names_uniq)), 
+                     label = names_uniq, 
+                     # color = clr,
+                     title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+  #nodes
+  
+  return(visNetwork(nodes, edges, height = "500px", width = "100%"))
 }
-#clr
 
-cleanNames <- sub("--.*","",names_uniq)
+makeVisnetwork(results) 
+```
 
-edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
-nodes = data.frame(id = c(1:length(names_uniq)), 
-                   label = names_uniq, 
-                   # color = clr,
-                   title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
-#nodes
 
-visNetwork(nodes, edges, height = "500px", width = "100%")
-
+```{r}
 # TODO: 3 visnetworks please show me!
+vis1 <- makeVisnetwork(cpopOutputs[[1]]$coef_tbl) 
+vis2 <- makeVisnetwork(cpopOutputs[[2]]$coef_tbl) 
+vis3 <- makeVisnetwork(cpopOutputs[[3]]$coef_tbl) 
+
 ```
 
 # Gender

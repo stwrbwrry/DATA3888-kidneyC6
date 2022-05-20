@@ -307,7 +307,7 @@ box4_log = rbind(box1_log, box3_log)
 colnames(box4_log)
 
 logplot <-
-ggplot(data = box4_log, aes(x = object, y = means)) +
+ggplot(data = box1_log, aes(x = object, y = means)) +
   geom_point(aes(color = Dataset), size = 0.1) +
   geom_errorbar(aes(ymin = q1,
                     ymax = q3,
