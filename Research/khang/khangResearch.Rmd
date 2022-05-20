@@ -273,10 +273,6 @@ toc()
 
 
 ```{r}
-# feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z1,y1))
-# feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z2,y2))
-# feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,list(z3,y3))
-
 f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
 f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
 f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
@@ -357,6 +353,8 @@ nodes = data.frame(id = c(1:length(names_uniq)),
 #nodes
 
 visNetwork(nodes, edges, height = "500px", width = "100%")
+
+# TODO: 3 visnetworks please show me!
 ```
 
 # Gender
@@ -431,23 +429,29 @@ calculate_gender = function(dataframe) {
 
 # Add gender and source column to each of the 4 data frames
 ue <- pairwise(userExpression, "Log")
+temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+temp_GSE46474 <- pairwise(exp_GSE46474, "Log")
+
+boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
+
 ue$outcome <- userBinaryOutcomes
 ue$gender <- calculate_gender(as.data.frame(userExpression))
 ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
 
 
-temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+
 temp_GSE36059$outcome <- y1
 temp_GSE36059$gender <- calculate_gender(exp_GSE36059)
 temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
 
 
-temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+
 temp_GSE48581$outcome <- y2
 temp_GSE48581$gender <- calculate_gender(exp_GSE48581)
 temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
 
-temp_GSE46474 <- pairwise(exp_GSE46474, "Log")
+
 temp_GSE46474$outcome <- y3
 temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
 temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
@@ -461,16 +465,12 @@ colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
 
 ```{r}
 # TODO: the colourful boxplot for the combined dataset, and colour by the source
-little <- combinedDataset %>% select(-"outcome",-"source",-"gender") %>% as.matrix()
+
+compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
 
 
-combinedDataset %>% select_if(negate(is.numeric))
-khangTable <- boxplot_tbl(little, index =1)
-box4_log = cbind(khangTable, source= combinedDataset$source)
-# combinedDataset$samples <- rownames(combinedDataset)
 
-
-ggplot(data = box4_log, aes(x = object, y = means)) +
+ggplot(data = compareCombinedData, aes(x = object, y = means)) +
   geom_point(aes(color = source), size = 0.1) +
   geom_errorbar(aes(ymin = q1,
                     ymax = q3,
