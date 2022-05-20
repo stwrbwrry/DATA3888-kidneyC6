@@ -263,7 +263,7 @@ y3 = as.factor(p_GSE46474$diagnosis)
 <!-- TODO: Implement this pairwise difference in shiny app -->
 
 ```{r}
-future::plan(multisession, workers=8)
+future::plan(multisession)
 tic()
 cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes)
 toc()
