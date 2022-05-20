@@ -75,12 +75,10 @@ makeVisnetwork <- function(cpopDF){
   names = data.frame(feature1 = rep("",length(coef)),
                      feature2 = rep("",length(coef)),
                      coef_size = abs(cpopDF$average))
-  #names
+  
   names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the cpopDF df
   names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the cpopDF df
-  # names$color = results$color
-  # network = plot_lratio_network(coef, type = "visNetwork")
-  #network
+  
   names_uniq = unique(c(names$feature1, names$feature2))
   # names_uniq
   numbers = names
@@ -122,6 +120,69 @@ makeVisnetwork <- function(cpopDF){
   return(visNetwork(nodes, edges, height = "500px", width = "100%"))
 }
 
+pairwise = function(exp_GSE, transform_type) {
+  z = exp_GSE
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    # z = log(z +1)
+    # removing weird AGL name added.
+    z <- pairwise_col_diff(log(z +1))
+    colnames(z) <- sub(".*\\.","",colnames(z))
+    z = z %>% as.matrix()
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  z = data.frame(z)
+  
+  return(z)
+}
+
+# returns gender vector
+calculate_gender = function(dataframe) {
+  colnames(dataframe) = tolower(colnames(dataframe))
+  # outcome = NULL
+  #   if ("outcome" %in% colnames(dataframe)) {
+  #     outcome = dataframe$outcome
+  #     dataframe = select(dataframe, -one_of("outcome"))
+  # }
+  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "ankrd44" %in% colnames(dataframe)) {
+    # known_genes =  c()
+    
+    outcome_df = dataframe %>% select("xist", "eif1ay","ankrd44")
+    outcome_df = pairwise(outcome_df, transform_type = "Log") %>% as.matrix()
+    outcome_df = data.frame(outcome_df)
+    
+    # Can replace this with an already preprocessed dataframe
+    
+    p_GSE46474 = pData(GSE46474)
+    p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
+    exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
+    colnames(exprs_GSE46474) = tolower(colnames(exprs_GSE46474))
+    exprs_GSE46474 = exprs_GSE46474 %>% select("xist", "eif1ay","ankrd44")
+    exprs_GSE46474 = pairwise(exprs_GSE46474, transform_type="Log") %>% as.matrix()
+    exprs_GSE46474 = data.frame(exprs_GSE46474)
+    
+    # print(dim(exprs_GSE46474))
+    # print(dim(outcome_df))
+    
+    model = knn(exprs_GSE46474, outcome_df, p_GSE46474$outcome, k = 3)
+    
+    # dataframe$gender = model
+    # dataframe$outcome = outcome
+    
+    return(model)
+    
+  }
+  return(NULL)
+}
+
 GSE46474 = gene_names(GSE46474)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
@@ -139,7 +200,7 @@ p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure sta
 # Main server logic
 shinyServer(function(input, output) {
 
-  
+  combinedDataset <- NULL
  ## Put everything onto the shiny app screen UI
   output$fileInput <- renderText({
     
@@ -292,106 +353,98 @@ shinyServer(function(input, output) {
       cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
     })
       
-      # withProgress(message = 'Generating CPOP', value = 0, {
-      #   # Number of times we'll go through the loop
-      #   n <- 4
-      #   incProgress(1/n, detail = paste("Starting CPOP 1/3"))
-      #   feature1 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)
-      #   incProgress(1/n, detail = paste("Finished CPOP 1/3"))
-      #   feature2 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z2,y2)
-      #   incProgress(1/n, detail = paste("Finished CPOP 2/3"))
-      #   feature3 <- generateCPOPmodel(userExpression,userBinaryOutcomes,z3,y3)
-      #   incProgress(1/n, detail = paste("Finished CPOP 3/3"))
-      #   
-      #   
-      # })
       
       
+    f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
+    f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
+    f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
+    
+    rI <- intersect(f1,f2)
+    stableFeatures <- intersect(rI,f3)
+    # generateCPOPmodel(z1,y1,z2,y2)
+    
+    # after finding the stable features, get rows relevant in each dataframe and create your own data frame.
+    # we will do a column bind
+    tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% stableFeatures,]
+    tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% stableFeatures,]
+    tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stableFeatures,]
+    
+    
+    results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
       
-      f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
-      f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
-      f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
-      
-      rI <- intersect(f1,f2)
-      stableFeatures <- intersect(rI,f3)
-      # generateCPOPmodel(z1,y1,z2,y2)
-      
-      # after finding the stable features, get rows relevant in each dataframe and create your own data frame.
-      # we will do a column bind
-      tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% stableFeatures,]
-      tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% stableFeatures,]
-      tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stableFeatures,]
-      
-      
-      results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
-      results$average <- rowMeans(results[,-1])
-      # resultTable$average
-      # -0.12109045	-0.07927375	AGL--ANKRD22
-      # -0.069795029	-0.025225051 AGL--ANKRD22
-      # -0.07525255	-0.023783883
-      # length(stableFeatures)
-      
-      coef = results$coef_name
-      
-      # saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
-      
-      results = results %>% mutate(color = case_when( average > 0 ~ "blue", average < 0 ~ "red" ))
-      names = data.frame(feature1 = rep("",length(coef)),
-                         feature2 = rep("",length(coef)),
-                         coef_size = abs(results$average))
-      #names
-      names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
-      names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
-      names$color = results$color
-      # network = plot_lratio_network(coef, type = "visNetwork")
-      #network
-      names_uniq = unique(c(names$feature1, names$feature2))
-      # names_uniq
-      numbers = names
-      #numbers
-      for (a in 1:nrow(numbers)) {
-        for (i in 1:length(names_uniq)) {
-          if (numbers$feature2[a] == names_uniq[i]) {
-            numbers$feature2[a] = i
-          }
-        }
-      }
-      for (a in 1:nrow(numbers)) {
-        for (i in 1:length(names_uniq)) {
-          if (numbers$feature1[a] == names_uniq[i]) {
-            numbers$feature1[a] = i
-          }
-        }
-      }
-      #numbers
-      clr = c()
-      for (a in 1:length(names_uniq)) {
-        for (i in 1:nrow(names)) {
-          if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
-            clr[a] = names$color[i]
-          }
-        }
-      }
-      #clr
-      
-      cleanNames <- sub("--.*","",names_uniq)
-      
-      edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
-      nodes = data.frame(id = c(1:length(names_uniq)), 
-                         label = names_uniq, 
-                         color = clr,
-                         title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
-      #nodes
       
       output$userFileVisNetwork <- renderVisNetwork({
-        
-        visNetwork(nodes, edges, height = "500px", width = "100%")
-       
+        makeVisnetwork(results) 
+      })
+      
+      output$v1 <- renderVisNetwork({
+        makeVisnetwork(cpopOutputs[[1]]$coef_tbl) 
+      })
+      output$v2 <- renderVisNetwork({
+        makeVisnetwork(cpopOutputs[[2]]$coef_tbl) 
+      })
+      output$v3 <- renderVisNetwork({
+        makeVisnetwork(cpopOutputs[[3]]$coef_tbl) 
       })
       
       output$pairwiseGenes <- DT::renderDataTable({
           data.frame(`Pairwise genes`=stableFeatures)
         })
+      
+      
+      # Add gender and source column to each of the 4 data frames
+      ue <- pairwise(userExpression, "Log")
+      temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+      temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+      temp_GSE46474 <- pairwise(exp_GSE46474, "Log")
+      
+      boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
+      
+      ue$outcome <- userBinaryOutcomes
+      ue$gender <- calculate_gender(as.data.frame(userExpression))
+      ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
+      
+      
+      
+      temp_GSE36059$outcome <- y1
+      temp_GSE36059$gender <- calculate_gender(exp_GSE36059)
+      temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
+      
+      
+      
+      temp_GSE48581$outcome <- y2
+      temp_GSE48581$gender <- calculate_gender(exp_GSE48581)
+      temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
+      
+      
+      temp_GSE46474$outcome <- y3
+      temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
+      temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
+      
+      
+      
+      combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
+      
+      colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
+      
+      compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
+      
+      output$boxplot <- renderPlot({
+        ggplot(data = compareCombinedData, aes(x = object, y = means)) +
+          geom_point(aes(color = source), size = 0.1) +
+          geom_errorbar(aes(ymin = q1,
+                            ymax = q3,
+                            color = source), size = 0.1,  alpha = 0.2) +
+          ggsci::scale_color_d3() +
+          theme(axis.ticks = element_blank()) +
+          theme(axis.text.x = element_blank()) +
+          xlab("Samples") +
+          theme(axis.title.y=element_blank()) +
+          labs(title = "Log transformation + pairwise difference") +
+          theme(plot.title = element_text(size=10))
+      })
+      
+      
       
       toc(log=TRUE)
       
@@ -406,15 +459,13 @@ shinyServer(function(input, output) {
       shinyjs::toggle("v3box")
   })
   
-  output$v1 <- renderVisNetwork({
-    readRDS("data/vis1.rds")
+  observeEvent(input$select, {
+    if(input$select == 1 && !is.null(combinedDataset)){
+      print("hey select")
+    }
   })
-  output$v2 <- renderVisNetwork({
-    readRDS("data/vis1.rds")
-  })
-  output$v3 <- renderVisNetwork({
-    readRDS("data/vis1.rds")
-  })
+  
+  
   
   
   # Rubbish below for the other tab pages. Can delete or refactor.
@@ -435,8 +486,6 @@ shinyServer(function(input, output) {
       contentType = "text/csv"
   )
   
-  output$boxplot <- renderPlot({
-    plot(mtcars$wt, mtcars$mpg)
-  }, res = 96)
+  
 
 })

@@ -290,23 +290,6 @@ tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stabl
 
 results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
 
-
-  
-
-# results$average <- rowMeans(results[,-1])
-# resultTable$average
-# -0.12109045	-0.07927375	AGL--ANKRD22
-# -0.069795029	-0.025225051 AGL--ANKRD22
-# -0.07525255	-0.023783883
-# length(stableFeatures)
-
-# coef = results$coef_name
-
-# makeVisnetwork(results)
-# makeVisnetwork(cpopOutputs[[1]]$coef_tbl)
-# makeVisnetwork(cpopOutputs[[3]]$coef_tbl)
-# saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
-# cpopOutputs[[1]]$coef_tbl
 ```
 
 
@@ -318,12 +301,10 @@ makeVisnetwork <- function(cpopDF){
   names = data.frame(feature1 = rep("",length(coef)),
                    feature2 = rep("",length(coef)),
                    coef_size = abs(cpopDF$average))
-  #names
+
   names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the cpopDF df
   names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the cpopDF df
-  # names$color = results$color
-  # network = plot_lratio_network(coef, type = "visNetwork")
-  #network
+  
   names_uniq = unique(c(names$feature1, names$feature2))
   # names_uniq
   numbers = names
@@ -380,9 +361,7 @@ vis3 <- makeVisnetwork(cpopOutputs[[3]]$coef_tbl)
 # Gender
 ```{r}
 pairwise = function(exp_GSE, transform_type) {
-  
   z = exp_GSE
-  
   if (transform_type == "Arc") {
     z = z / max(z)
     z = asin(sqrt(z))
@@ -403,7 +382,6 @@ pairwise = function(exp_GSE, transform_type) {
   z = data.frame(z)
   
   return(z)
-  
 }
 # returns gender vector
 calculate_gender = function(dataframe) {
@@ -476,8 +454,6 @@ temp_GSE46474$outcome <- y3
 temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
 temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
 
-
-
 combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
  
 colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
@@ -487,8 +463,6 @@ colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
 # TODO: the colourful boxplot for the combined dataset, and colour by the source
 
 compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
-
-
 
 ggplot(data = compareCombinedData, aes(x = object, y = means)) +
   geom_point(aes(color = source), size = 0.1) +
@@ -502,9 +476,15 @@ ggplot(data = compareCombinedData, aes(x = object, y = means)) +
   theme(axis.title.y=element_blank()) +
   labs(title = "Log transformation + pairwise difference") +
   theme(plot.title = element_text(size=10))
+```
 
+```{r}
+# Now give me male only from combinedDataset
+
+combinedDataset
 
 ```
+
 
 
 
