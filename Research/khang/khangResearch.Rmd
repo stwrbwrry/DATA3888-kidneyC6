@@ -114,11 +114,11 @@ calc_mode <- function(x){
 }
 
 set.seed(3888)
-generateCPOPmodel <- function(user,userOutcomes, inhouse){
+generateCPOPmodel <- function(user,userOutcomes, public){
   return(cpop_model(user,
-        inhouse[[1]], # inhouse[1] is the expression matrix only
+        public[[1]], # public[1] is the expression matrix only
         userOutcomes,
-        inhouse[[2]], #inhouse[2] is the inhouse Outcomes
+        public[[2]], #public[2] is the public Outcomes
         w = NULL,
         n_features = 30,
         n_iter = 30,
@@ -378,8 +378,6 @@ visNetwork(nodes, edges, height = "500px", width = "100%")
 ```{r}
 pairwise = function(exp_GSE, transform_type) {
   
-  #exp_GSE = subset(exp_GSE, select = c(intersection))
-  
   z = exp_GSE
   
   if (transform_type == "Arc") {
@@ -395,7 +393,7 @@ pairwise = function(exp_GSE, transform_type) {
   else if (transform_type == "Pair"){
     z = z %>% as.matrix()
     z_pairwise = pairwise_col_diff(z) %>% as.matrix()
-    
+
   }
   z = data.frame(z)
   
@@ -420,7 +418,7 @@ calculate_gender = function(dataframe) {
     # Can replace this with an already preprocessed dataframe
    
     p_GSE46474 = pData(GSE46474)
-    p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
+    p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
     exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
     colnames(exprs_GSE46474) = tolower(colnames(exprs_GSE46474))
     exprs_GSE46474 = exprs_GSE46474 %>% select(known_genes)
@@ -441,10 +439,23 @@ calculate_gender = function(dataframe) {
   return(NULL)
 }
 
-
+# Add gender and source column to each of the 4 data frames
 testInput <- as.data.frame(userExpression)
+userExpression <- calculate_gender(testInput)
+userExpression$source <- c(rep("userUploadedData", length(rownames(userExpression))))
 
-calculate_gender(testInput)
+exp_GSE36059 <- calculate_gender(exp_GSE36059)
+exp_GSE36059$source <- c(rep("public", length(rownames(exp_GSE36059))))
+
+
+exp_GSE48581 <- calculate_gender(exp_GSE48581)
+exp_GSE48581$source <- c(rep("public", length(rownames(exp_GSE48581))))
+
+
+exp_GSE46474 <- calculate_gender(exp_GSE46474)
+exp_GSE46474$source <- c(rep("public", length(rownames(exp_GSE46474))))
+
+
 
 ```
 
