@@ -293,20 +293,20 @@ results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="co
 
   
 
-results$average <- rowMeans(results[,-1])
+# results$average <- rowMeans(results[,-1])
 # resultTable$average
 # -0.12109045	-0.07927375	AGL--ANKRD22
 # -0.069795029	-0.025225051 AGL--ANKRD22
 # -0.07525255	-0.023783883
 # length(stableFeatures)
 
-coef = results$coef_name
+# coef = results$coef_name
 
 # makeVisnetwork(results)
 # makeVisnetwork(cpopOutputs[[1]]$coef_tbl)
 # makeVisnetwork(cpopOutputs[[3]]$coef_tbl)
 # saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
-cpopOutputs[[1]]$coef_tbl
+# cpopOutputs[[1]]$coef_tbl
 ```
 
 

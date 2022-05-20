@@ -69,6 +69,59 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse){
                     intercept = FALSE))
 }
 
+makeVisnetwork <- function(cpopDF){
+  cpopDF$average <- rowMeans(cpopDF[,-1])
+  coef <- cpopDF$coef_name
+  names = data.frame(feature1 = rep("",length(coef)),
+                     feature2 = rep("",length(coef)),
+                     coef_size = abs(cpopDF$average))
+  #names
+  names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the cpopDF df
+  names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the cpopDF df
+  # names$color = results$color
+  # network = plot_lratio_network(coef, type = "visNetwork")
+  #network
+  names_uniq = unique(c(names$feature1, names$feature2))
+  # names_uniq
+  numbers = names
+  #numbers
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature2[a] == names_uniq[i]) {
+        numbers$feature2[a] = i
+      }
+    }
+  }
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature1[a] == names_uniq[i]) {
+        numbers$feature1[a] = i
+      }
+    }
+  }
+  #numbers
+  clr = c()
+  for (a in 1:length(names_uniq)) {
+    for (i in 1:nrow(names)) {
+      if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+        clr[a] = names$color[i]
+      }
+    }
+  }
+  #clr
+  
+  cleanNames <- sub("--.*","",names_uniq)
+  
+  edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+  nodes = data.frame(id = c(1:length(names_uniq)), 
+                     label = names_uniq, 
+                     # color = clr,
+                     title = paste0('<a href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+  #nodes
+  
+  return(visNetwork(nodes, edges, height = "500px", width = "100%"))
+}
+
 GSE46474 = gene_names(GSE46474)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
