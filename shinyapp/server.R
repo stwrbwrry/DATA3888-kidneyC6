@@ -12,7 +12,7 @@ library(matrixStats)
 library(visNetwork)
 library(furrr)
 library(tictoc)
-
+library(shinyjs)
 library(shiny)
 library(GEOquery) 
 library(DT)
@@ -347,8 +347,21 @@ shinyServer(function(input, output) {
     
   })
   
+  observeEvent(input$showHide, {
+      shinyjs::toggle("v1box")
+      shinyjs::toggle("v2box")
+      shinyjs::toggle("v3box")
+  })
   
-  
+  output$v1 <- renderVisNetwork({
+    readRDS("data/vis1.rds")
+  })
+  output$v2 <- renderVisNetwork({
+    readRDS("data/vis1.rds")
+  })
+  output$v3 <- renderVisNetwork({
+    readRDS("data/vis1.rds")
+  })
   
   
   # Rubbish below for the other tab pages. Can delete or refactor.

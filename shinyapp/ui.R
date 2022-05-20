@@ -8,11 +8,13 @@
 #
 
 library(shiny)
+library(shinyjs)
 library(shinythemes)
 library(visNetwork)
 library(DT)
 
 # options(shiny.autoreload = TRUE)
+
 
 
 # Define UI for application 
@@ -31,7 +33,7 @@ shinyUI(
                           fluidRow(
                             column(12, 
                                    fileInput("userFile", label = h3("Upload csv file")),
-                                   verbatimTextOutput("fileInput")
+                                   verbatimTextOutput("fileInput"), useShinyjs()
                             )),
                           fluidRow(
                             column(4,h3("Pairwise Genes"),
@@ -41,6 +43,33 @@ shinyUI(
                             ),
                             column(8,h3("VisNetwork") ,
                                    visNetworkOutput("userFileVisNetwork")
+                            )
+                          ),fluidRow(
+                            column(12,h5("Want to see how your dataset compares to public datasets?"),
+                                   actionButton(inputId = "showHide", label = "show / hide")
+                            )
+                            
+                          ), fluidRow(
+                            column(4,
+                                   hidden(
+                                    div(id="v1box", h4("GSE36059 vs uploaded data"),
+                                        visNetworkOutput( "v1")
+                                        ) 
+                                     )
+                            ),
+                            column(4 ,
+                                   hidden(
+                                     div(id="v2box",h4("GSE48581 vs uploaded data"),
+                                         visNetworkOutput( "v2")
+                                         )
+                                     )
+                            ),
+                            column(4 ,
+                                   hidden(
+                                     div(id="v3box",h4("GSE46474 vs uploaded data"),
+                                         visNetworkOutput( "v3")
+                                     )
+                                   )
                             )
                           ),
                           fluidRow(

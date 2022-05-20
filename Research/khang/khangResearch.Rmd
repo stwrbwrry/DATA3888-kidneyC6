@@ -306,6 +306,7 @@ coef = results$coef_name
 # makeVisnetwork(cpopOutputs[[1]]$coef_tbl)
 # makeVisnetwork(cpopOutputs[[3]]$coef_tbl)
 # saveRDS(stableFeatures, file = "../../shinyapp/data/stableFeatures.rds")
+cpopOutputs[[1]]$coef_tbl
 ```
 
 
@@ -373,7 +374,7 @@ makeVisnetwork(results)
 vis1 <- makeVisnetwork(cpopOutputs[[1]]$coef_tbl) 
 vis2 <- makeVisnetwork(cpopOutputs[[2]]$coef_tbl) 
 vis3 <- makeVisnetwork(cpopOutputs[[3]]$coef_tbl) 
-
+# saveRDS(vis1,"../../shinyapp/data/vis1.rds")
 ```
 
 # Gender
