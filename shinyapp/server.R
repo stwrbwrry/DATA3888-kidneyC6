@@ -381,5 +381,9 @@ shinyServer(function(input, output) {
       },
       contentType = "text/csv"
   )
+  
+  output$boxplot <- renderPlot({
+    plot(mtcars$wt, mtcars$mpg)
+  }, res = 96)
 
 })
