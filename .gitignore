@@ -40,3 +40,10 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+Research/khang/khangResearch.nb.html
+Research/khang/khangResearch.Rmd
+shinyapp/data/bridge.rds
+shinyapp/data/GSE129166.rds
+shinyapp/data/GSE36059.rds
+shinyapp/data/GSE46474.rds
+shinyapp/data/GSE48581.rds

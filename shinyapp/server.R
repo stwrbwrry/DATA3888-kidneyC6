@@ -16,6 +16,7 @@ library(shinyjs)
 library(shiny)
 library(GEOquery) 
 library(DT)
+library(class)
 
 # set up multi processing, works on khang's mac mini but remove workers if on server
 future::plan(multisession)
@@ -120,30 +121,6 @@ makeVisnetwork <- function(cpopDF){
   return(visNetwork(nodes, edges, height = "500px", width = "100%"))
 }
 
-pairwise = function(exp_GSE, transform_type) {
-  z = exp_GSE
-  if (transform_type == "Arc") {
-    z = z / max(z)
-    z = asin(sqrt(z))
-    z = pairwise_col_diff(z) %>% as.matrix()
-  }
-  else if (transform_type == "Log") {
-    # z = log(z +1)
-    # removing weird AGL name added.
-    z <- pairwise_col_diff(log(z +1))
-    colnames(z) <- sub(".*\\.","",colnames(z))
-    z = z %>% as.matrix()
-  }
-  else if (transform_type == "Pair"){
-    z = z %>% as.matrix()
-    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
-    
-  }
-  z = data.frame(z)
-  
-  return(z)
-}
-
 # returns gender vector
 calculate_gender = function(dataframe) {
   colnames(dataframe) = tolower(colnames(dataframe))
@@ -207,6 +184,13 @@ shinyServer(function(input, output) {
   output$fileInput <- renderText({
     
     if(!is.null(input$userFile)){
+      
+      file = input$userFile
+      
+      ext = tools::file_ext(file$datapath)
+      validate(need(ext == "csv", "Please upload a csv file"))
+      
+      
       tic("userFileUpload")
       userFile <- data.frame(read_csv(input$userFile$datapath, name_repair = "minimal"))
       
@@ -238,6 +222,9 @@ shinyServer(function(input, output) {
         
       incProgress(1/n, detail = paste("Just started"))
       rownames(userFile) <-  tolower(userFile[[1]])
+      
+      validate(need(('diagnosis' %in% rownames(userFile)) == TRUE, "An outcome column has not been provided"))
+      
       userFile <-  userFile[,-1]
       diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
       
@@ -271,7 +258,7 @@ shinyServer(function(input, output) {
       majorityClass <- as.numeric(levels(f))[f]
       userBinaryOutcomes[is.na(userBinaryOutcomes)] <- majorityClass
       
-      
+      # TODO: Do predictions for outcomes if no outcome column provided
       
       # row.names(userExpression) <- newR
       # feature1 <-generateCPOPmodel(userExpression,userBinaryOutcomes,z1,y1)

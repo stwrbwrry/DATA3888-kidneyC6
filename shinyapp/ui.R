@@ -12,6 +12,7 @@ library(shinyjs)
 library(shinythemes)
 library(visNetwork)
 library(DT)
+library(class)
 
 # options(shiny.autoreload = TRUE)
 
@@ -38,7 +39,7 @@ shinyUI(
                           
                           fluidRow(
                             column(12, 
-                                   fileInput("userFile", label = h3("Upload csv file")),
+                                   fileInput("userFile", label = h3("Upload csv file"), accept = ".csv"),
                                    verbatimTextOutput("fileInput")
                             )),
                           fluidRow(
@@ -97,7 +98,7 @@ shinyUI(
                           ),
                           fluidRow(
                             column(12, br()),
-                            column(7, selectInput("select", label = tags$p("Choose gender to include in combined dataset",style="font-weight:bold;"), 
+                            column(7, selectInput("select", label = tags$p("Choose biological sex to include in combined dataset",style="font-weight:bold;"), 
                                                   choices = list("Both" = 1, "Male" = 2, "Female" = 3), selected = 1)),
                             column(12, br()),
                             column(2, p("Then click the download link", style="font-weight:bold;")),
