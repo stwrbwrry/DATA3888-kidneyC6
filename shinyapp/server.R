@@ -452,24 +452,6 @@ shinyServer(function(input, output) {
       })
       
       
-      cvK = 5
-      X = combinedDataset %>% select(-c(outcome, gender, source))
-      y = combinedDataset$outcome
-      cvSets = cvTools::cvFolds(nrow(combinedDataset), cvK)
-      predicted_outcome = c()
-      
-      for (i in 1:cvK) {
-        test_id = cvSets$subsets[cvSets$which == i]
-        X_test = X1[test_id, ]
-        X_train = X1[-test_id, ]
-        y_test = y1[test_id]
-        y_train = y1[-test_id]
-        
-        fit <- knn(X_train, X_test, y_train, k = 5)
-        predicted_outcome
-      }
-      
-      
       
       
       output$boxplot <- renderPlot({
