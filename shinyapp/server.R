@@ -459,7 +459,7 @@ shinyServer(function(input, output) {
       predicted_outcome = c()
       
       for (i in 1:cvK) {
-        test_id = cvSets$subsets[cvSets$which == j]
+        test_id = cvSets$subsets[cvSets$which == i]
         X_test = X1[test_id, ]
         X_train = X1[-test_id, ]
         y_test = y1[test_id]

@@ -112,7 +112,7 @@ shinyUI(
                         h2("Figure 1")
                         ),
       tabPanel("Fairness",
-         fludiPage(
+         fluidPage(
            fluidRow(
              column(12, 
                 tags$h2("Model Prediction Accuracy"),
