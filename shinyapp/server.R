@@ -53,8 +53,9 @@ gene_names = function(gse) {
   return(gse)
 }
 
-set.seed(3888)
+
 generateCPOPmodel <- function(user,userOutcomes, inhouse){
+  set.seed(3888)
   return(cpop_model(user,
                     inhouse[[1]], # inhouse[1] is the expression matrix only
                     userOutcomes,
@@ -157,10 +158,10 @@ calculate_gender = function(dataframe) {
   #     outcome = dataframe$outcome
   #     dataframe = select(dataframe, -one_of("outcome"))
   # }
-  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "ankrd44" %in% colnames(dataframe)) {
+  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "rps4y1" %in% colnames(dataframe)) {
     # known_genes =  c()
     
-    outcome_df = dataframe %>% select("xist", "eif1ay","ankrd44")
+    outcome_df = dataframe %>% select("xist", "eif1ay","rps4y1")
     outcome_df = pairwise(outcome_df, transform_type = "Log") %>% as.matrix()
     outcome_df = data.frame(outcome_df)
     
@@ -170,7 +171,7 @@ calculate_gender = function(dataframe) {
     p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
     exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
     colnames(exprs_GSE46474) = tolower(colnames(exprs_GSE46474))
-    exprs_GSE46474 = exprs_GSE46474 %>% select("xist", "eif1ay","ankrd44")
+    exprs_GSE46474 = exprs_GSE46474 %>% select("xist", "eif1ay","rps4y1")
     exprs_GSE46474 = pairwise(exprs_GSE46474, transform_type="Log") %>% as.matrix()
     exprs_GSE46474 = data.frame(exprs_GSE46474)
     
@@ -188,6 +189,7 @@ calculate_gender = function(dataframe) {
   return(NULL)
 }
 
+GSE46474 = gene_names(GSE46474)
 GSE21374 = gene_names(GSE21374)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
@@ -217,7 +219,7 @@ shinyServer(function(input, output) {
       
       ext = tools::file_ext(file$datapath)
       print(ext)
-      #validate(need(ext == "csv", "Please upload a csv file"))
+      shiny::validate(need(ext[1] == "csv", "Please upload a csv file"))
       
       
       tic("userFileUpload")
@@ -252,7 +254,7 @@ shinyServer(function(input, output) {
       incProgress(1/n, detail = paste("Just started"))
       rownames(userFile) <-  tolower(userFile[[1]])
       
-      #validate(need(try(('diagnosis' %in% rownames(userFile)) == TRUE), "An outcome column has not been provided"))
+      shiny::validate(need(try(('outcome' %in% rownames(userFile)) == TRUE), "An outcome column has not been provided"))
       
       userFile <-  userFile[,-1]
       diagnosisIndex <- which(rownames(userFile) == 'outcome')
@@ -269,7 +271,7 @@ shinyServer(function(input, output) {
       myVar = as.data.frame(myVar)
       
       userExpression = cbind(userExpression, variance = myVar)
-      userExpression = slice_max(userExpression, order_by = myVar, n = 500)
+      userExpression = slice_max(userExpression, order_by = myVar, n = 100)
       userExpression = subset(userExpression, select = -c(myVar))
       
       # get the row names (probe ids) before transpose
@@ -305,7 +307,7 @@ shinyServer(function(input, output) {
       exp_GSE36059 = as.data.frame(exp_GSE36059)
       
       exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 500) # For each column, get the 300 most variable genes, so you get 2000 rows
+      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 100) # For each column, get the 300 most variable genes, so you get 2000 rows
       exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
       
       row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
@@ -320,7 +322,7 @@ shinyServer(function(input, output) {
       
       
       exp_GSE21374 = cbind(exp_GSE21374, variance = Variance)
-      exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 500)
+      exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 100)
       exp_GSE21374 = subset(exp_GSE21374, select = -c(Variance))
       row_names_exp_GSE21374 = rownames(exp_GSE21374)
       
@@ -332,7 +334,7 @@ shinyServer(function(input, output) {
       Variance = as.data.frame(Variance)
       exp_GSE48581 = as.data.frame(exp_GSE48581)
       exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
-      exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 500)
+      exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 100)
       exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
       row_names_exp_GSE48581 = rownames(exp_GSE48581)
       
@@ -368,7 +370,7 @@ shinyServer(function(input, output) {
       
     withProgress(message = 'Executing CPOP', value = 0, {
       incProgress(0.5, detail = paste("Starting CPOP in parallel"))
-      cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
+      cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes)
     })
       
     cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
@@ -394,11 +396,12 @@ shinyServer(function(input, output) {
     
     
     results <- cpop_coef %>% select(coef_name, coef1, coef2)
+    results = subset(results, !duplicated(subset(results, select = c(coef_name))))
     
     cpopOutputs[[1]]$coef_tbl = cpopOutputs[[1]]$coef_tbl %>% filter(coef_name != "(Intercept)")
     cpopOutputs[[2]]$coef_tbl = cpopOutputs[[2]]$coef_tbl %>% filter(coef_name != "(Intercept)")
     cpopOutputs[[3]]$coef_tbl = cpopOutputs[[3]]$coef_tbl %>% filter(coef_name != "(Intercept)")
-      
+    
       
     output$userFileVisNetwork <- renderVisNetwork({
       makeVisnetwork(results) 
@@ -415,10 +418,10 @@ shinyServer(function(input, output) {
     })
     
     output$pairwiseGenes <- DT::renderDataTable({
-        data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = cpop_coef$avg)
+        data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = round(cpop_coef$avg, 3))
       })
     
-    withProgress(message = 'Finished CPOP! Now combining data', value = 0, { 
+    withProgress(message = 'Finished CPOP. Now combining data', value = 0, { 
     # Add gender and source column to each of the 4 data frames
     ue <- pairwise(userExpression, "Log")
     temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
@@ -428,36 +431,87 @@ shinyServer(function(input, output) {
     boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
     
     ue$outcome <- userBinaryOutcomes
-    ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
+    #ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
     ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
-    
+    print(ue$biological_sex)
     
     
     temp_GSE36059$outcome <- y1
-    temp_GSE36059$biological_sex <- calculate_gender(exp_GSE36059)
-    temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
+    temp_GSE36059$biological_sex <- calculate_gender(data.frame(t(exprs(GSE36059))))
+    temp_GSE36059$source <- c(rep("GSE36059", length(rownames(temp_GSE36059))))
     
     
     
     temp_GSE48581$outcome <- y2
-    temp_GSE48581$biological_sex <- calculate_gender(exp_GSE48581)
-    temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
+    temp_GSE48581$biological_sex <- calculate_gender(data.frame(t(exprs(GSE48581))))
+    temp_GSE48581$source <- c(rep("GSE48581", length(rownames(temp_GSE48581))))
     
     
     temp_GSE21374$outcome <- y3
-    temp_GSE21374$biological_sex <- calculate_gender(exp_GSE21374)
-    temp_GSE21374$source <- c(rep("public GSE21374", length(rownames(exp_GSE21374))))
+    temp_GSE21374$biological_sex <- calculate_gender(data.frame(t(exprs(GSE21374))))
+    temp_GSE21374$source <- c(rep("GSE21374", length(rownames(temp_GSE21374))))
     
     incProgress(0.5, detail = paste("Combining all the data"))
     
     combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
-    
     colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
     
     compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
     })
     
     
+    
+    withProgress(message = 'Data Combined. Now Calculating Fairness', value = 0, {
+      cvK = 5
+      X1 = combinedDataset %>% select(-c(outcome, biological_sex, source))
+      y1 = combinedDataset$outcome
+
+      cvSets = cvTools::cvFolds(nrow(X1), cvK)
+      incProgress(0.25, detail = paste("Generating Predictions"))
+      predicted_outcome = c()
+      predicted_index = c()
+      for (i in 1:cvK) {
+        test_id = cvSets$subsets[cvSets$which == i]
+        X_test = X1[test_id, ]
+        X_train = X1[-test_id, ]
+        y_test = y1[test_id]
+        y_train = y1[-test_id]
+
+        fit <- knn(X_train, X_test, y_train, k = 10)
+        predicted_outcome = append(predicted_outcome, fit)
+        predicted_index = append(predicted_index, test_id)
+      }
+      incProgress(0.5, detail = paste("Generating Statistics"))
+      pred_df = data.frame(predicted_index, predicted_outcome) %>% arrange(predicted_index) #Puts predictions in order again
+      combinedDataset$prediction = pred_df$predicted_outcome
+      combinedDataset$correct = ifelse(combinedDataset$prediction == combinedDataset$outcome, 1, 0)
+
+      gse21374 = combinedDataset %>% filter(source == "GSE21374")
+      gse36059 = combinedDataset %>% filter(source == "GSE36059")
+      gse48581 = combinedDataset %>% filter(source == "GSE48581")
+      user = combinedDataset %>% filter(source == "userUploadedData")
+
+      data_acc = c(count(gse21374$correct == 1)/nrow(gse21374), count(gse36059$correct == 1)/nrow(gse36059), count(gse48581$correct == 1)/nrow(gse48581), count(user$correct == 1)/nrow(user))
+      data_pos = c(count(gse21374$prediction == 1)/nrow(gse21374), count(gse36059$prediction == 1)/nrow(gse36059), count(gse48581$prediction == 1)/nrow(gse48581), count(user$prediction == 1)/nrow(user))
+      data_obsv = c(nrow(gse21374), nrow(gse36059), nrow(gse48581), nrow(user))
+      
+      
+      male = combinedDataset %>% filter(biological_sex == 0)
+      female = combinedDataset %>% filter(biological_sex == 1)
+
+      gen_acc = c(count(male$correct == 1)/nrow(male), count(female$correct == 1)/nrow(female))
+      gen_pos = c(count(male$prediction == 1)/nrow(male), count(female$prediction == 1)/nrow(female))
+      gen_obsv = c(nrow(male), nrow(female))
+
+
+    })
+    output$source_stats <- DT::renderDataTable({
+      data.frame(`Dataset` = c("GSE21374", "GSE36059", "GSE48581", "User Input"), Observations = data_obsv, Accuracy = round(data_acc, 2), `Positive Prediction Rate` = round(data_pos, 2))
+    })
+    output$sex_stats <- DT::renderDataTable({
+      data.frame(`Biological Sex` = c("Male", "Female"), Observations = gen_obsv, Accuracy = round(gen_acc, 2), `Positive Prediction Rate` = round(gen_pos, 2))
+    })
+
     
     output$boxplot <- renderPlot({
       ggplot(data = compareCombinedData, aes(x = object, y = means)) +
@@ -492,10 +546,10 @@ shinyServer(function(input, output) {
         write_csv(combinedDataset, file)
       }
       else if (input$select == 2){
-        write_csv(combinedDataset[which(combinedDataset$gender == 0),], file)
+        write_csv(combinedDataset[which(combinedDataset$biological_sex == 0),], file)
       }
       else if (input$select == 3){
-        write_csv(combinedDataset[which(combinedDataset$gender == 1),], file)
+        write_csv(combinedDataset[which(combinedDataset$biological_sex == 1),], file)
       }
     },
     contentType = "text/csv"
