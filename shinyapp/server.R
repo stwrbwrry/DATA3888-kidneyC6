@@ -60,7 +60,7 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse){
                     w = NULL,
                     n_features = 30,
                     n_iter = 30,
-                    alpha = 0,
+                    alpha = 1,
                     family = "binomial",
                     s = "lambda.min",
                     cpop2_break = TRUE,
@@ -120,6 +120,32 @@ makeVisnetwork <- function(cpopDF){
   
   return(visNetwork(nodes, edges, height = "500px", width = "100%"))
 }
+
+
+pairwise = function(exp_GSE, transform_type) {
+  z = exp_GSE
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    # z = log(z +1)
+    # removing weird AGL name added.
+    z <- pairwise_col_diff(log(z +1))
+    colnames(z) <- sub(".*\\.","",colnames(z))
+    z = z %>% as.matrix()
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  z = data.frame(z)
+  
+  return(z)
+}
+
 
 # returns gender vector
 calculate_gender = function(dataframe) {
@@ -188,7 +214,8 @@ shinyServer(function(input, output) {
       file = input$userFile
       
       ext = tools::file_ext(file$datapath)
-      validate(need(ext == "csv", "Please upload a csv file"))
+      print(ext)
+      #validate(need(ext == "csv", "Please upload a csv file"))
       
       
       tic("userFileUpload")
@@ -223,7 +250,7 @@ shinyServer(function(input, output) {
       incProgress(1/n, detail = paste("Just started"))
       rownames(userFile) <-  tolower(userFile[[1]])
       
-      validate(need(('diagnosis' %in% rownames(userFile)) == TRUE, "An outcome column has not been provided"))
+      #validate(need(try(('diagnosis' %in% rownames(userFile)) == TRUE), "An outcome column has not been provided"))
       
       userFile <-  userFile[,-1]
       diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
@@ -342,24 +369,29 @@ shinyServer(function(input, output) {
       cpopOutputs <- future_map(list(list(z1,y1),list(z2,y2), list(z3,y3)), generateCPOPmodel, user= userExpression, userOutcomes=userBinaryOutcomes )
     })
       
-      
-      
-    f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
-    f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
-    f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
+    cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
     
-    rI <- intersect(f1,f2)
-    stableFeatures <- intersect(rI,f3)
+    cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
+    cpop_coef = head(cpop_coef %>% arrange(desc(avg)), 20)
+      
+    top_features = cpop_coef$coef_name[-1]
+    
+    # Gets intersect. Legacy feature in case something breaks
+    #f1 <-  cpopOutputs[[1]]$coef_tbl$coef_name[-1] 
+    #f2 <- cpopOutputs[[2]]$coef_tbl$coef_name[-1]
+    #f3 <- cpopOutputs[[3]]$coef_tbl$coef_name[-1]
+    #rI <- intersect(f1,f2)
+    #stableFeatures <- intersect(rI,f3)
     # generateCPOPmodel(z1,y1,z2,y2)
     
     # after finding the stable features, get rows relevant in each dataframe and create your own data frame.
     # we will do a column bind
-    tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% stableFeatures,]
-    tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% stableFeatures,]
-    tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% stableFeatures,]
+    #tb1 <-  cpopOutputs[[1]]$coef_tbl[cpopOutputs[[1]]$coef_tbl$coef_name %in% top_features,]
+    #tb2 <-  cpopOutputs[[2]]$coef_tbl[cpopOutputs[[2]]$coef_tbl$coef_name %in% top_features,]
+    #tb3 <-  cpopOutputs[[3]]$coef_tbl[cpopOutputs[[3]]$coef_tbl$coef_name %in% top_features,]
     
     
-    results <- tb1 %>% inner_join(tb2, by ="coef_name" ) %>% inner_join(tb3, by ="coef_name" )
+    results <- cpop_coef %>% select(coef_name, coef1, coef2)
       
       
       output$userFileVisNetwork <- renderVisNetwork({
@@ -377,7 +409,7 @@ shinyServer(function(input, output) {
       })
       
       output$pairwiseGenes <- DT::renderDataTable({
-          data.frame(`Pairwise genes`=stableFeatures)
+          data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = cpop_coef$avg)
         })
       
       withProgress(message = 'Finished CPOP! Now combining data', value = 0, { 
@@ -418,6 +450,8 @@ shinyServer(function(input, output) {
       
       compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
       })
+      
+      
       
       
       output$boxplot <- renderPlot({
