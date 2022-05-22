@@ -30,6 +30,8 @@ options(shiny.maxRequestSize=150*1024^2)
 GSE46474 <- readRDS("data/GSE46474.rds")
 GSE36059 <-  readRDS("data/GSE36059.rds")
 GSE48581 <-  readRDS("data/GSE48581.rds")
+GSE21374 = readRDS("data/GSE21374.rds")
+GSE129166 = readRDS("data/GSE129166.rds")
 bridge <-   readRDS('data/bridge.rds')
 
 calc_mode <- function(x){
@@ -186,11 +188,11 @@ calculate_gender = function(dataframe) {
   return(NULL)
 }
 
-GSE46474 = gene_names(GSE46474)
+GSE21374 = gene_names(GSE21374)
 GSE36059 = gene_names(GSE36059)
 GSE48581 = gene_names(GSE48581)
 
-p_GSE46474 = pData(GSE46474) 
+p_GSE21374 = pData(GSE21374) 
 p_GSE48581 = pData(GSE48581) 
 p_GSE36059 = pData(GSE36059) 
 
@@ -198,7 +200,7 @@ p_GSE36059 = pData(GSE36059)
 # creating the outcome columns to put inside CPOP
 p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
 p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
-p_GSE46474$diagnosis = ifelse(p_GSE46474$characteristics_ch1.5 == "procedure status: post-transplant non-rejection (NR)", 0, 1)
+p_GSE21374$diagnosis = ifelse(p_GSE21374$characteristics_ch1.3 == "rejection/non rejection: nonrej", 0, 1)
 
 # Main server logic
 shinyServer(function(input, output) {
@@ -253,7 +255,7 @@ shinyServer(function(input, output) {
       #validate(need(try(('diagnosis' %in% rownames(userFile)) == TRUE), "An outcome column has not been provided"))
       
       userFile <-  userFile[,-1]
-      diagnosisIndex <- which(rownames(userFile) == 'diagnosis')
+      diagnosisIndex <- which(rownames(userFile) == 'outcome')
       
       # separate for individual cleaning
       userExpression <- userFile[-diagnosisIndex,]
@@ -267,7 +269,7 @@ shinyServer(function(input, output) {
       myVar = as.data.frame(myVar)
       
       userExpression = cbind(userExpression, variance = myVar)
-      userExpression = slice_max(userExpression, order_by = myVar, n = 2000)
+      userExpression = slice_max(userExpression, order_by = myVar, n = 500)
       userExpression = subset(userExpression, select = -c(myVar))
       
       # get the row names (probe ids) before transpose
@@ -303,24 +305,24 @@ shinyServer(function(input, output) {
       exp_GSE36059 = as.data.frame(exp_GSE36059)
       
       exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 2000) # For each column, get the 2000 most variable genes, so you get 2000 rows
+      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 500) # For each column, get the 300 most variable genes, so you get 2000 rows
       exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
       
       row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
       
       
       ## keeping only the 2000 most variable genes in my data frame 
-      exp_GSE46474 = (exprs(GSE46474))
+      exp_GSE21374 = (exprs(GSE21374))
       
-      Variance = rowVars(as.matrix(exp_GSE46474))
+      Variance = rowVars(as.matrix(exp_GSE21374))
       Variance = as.data.frame(Variance)
-      exp_GSE46474 = as.data.frame(exp_GSE46474)
+      exp_GSE21374 = as.data.frame(exp_GSE21374)
       
       
-      exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
-      exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 2000)
-      exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance))
-      row_names_exp_GSE46474 = rownames(exp_GSE46474)
+      exp_GSE21374 = cbind(exp_GSE21374, variance = Variance)
+      exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 500)
+      exp_GSE21374 = subset(exp_GSE21374, select = -c(Variance))
+      row_names_exp_GSE21374 = rownames(exp_GSE21374)
       
       
       
@@ -330,12 +332,12 @@ shinyServer(function(input, output) {
       Variance = as.data.frame(Variance)
       exp_GSE48581 = as.data.frame(exp_GSE48581)
       exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
-      exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 2000)
+      exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 500)
       exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance))
       row_names_exp_GSE48581 = rownames(exp_GSE48581)
       
       ## now find the most common probe ids names between 3 datasets
-      intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE46474)
+      intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE21374)
       intersection = intersect(intersection, row_names_exp_GSE48581)
       intersection = intersect(intersection, row_names_UE)
       
@@ -343,8 +345,8 @@ shinyServer(function(input, output) {
       exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
       exp_GSE36059 = subset(exp_GSE36059, select = c(intersection)) # select rows that contain the probe ids in intersection
       
-      exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474)))
-      exp_GSE46474 = subset(exp_GSE46474, select = c(intersection)) # select rows that contain the probe ids in intersection
+      exp_GSE21374 = as.data.frame(t(as.matrix(exp_GSE21374)))
+      exp_GSE21374 = subset(exp_GSE21374, select = c(intersection)) # select rows that contain the probe ids in intersection
       
       exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
       exp_GSE48581 = subset(exp_GSE48581, select = c(intersection)) # select rows that contain the probe ids in intersection
@@ -357,12 +359,12 @@ shinyServer(function(input, output) {
       
       z1 = exp_GSE36059 %>% as.matrix() # used for box plots and CPOP
       z2 = exp_GSE48581 %>% as.matrix()
-      z3 = exp_GSE46474 %>% as.matrix()
+      z3 = exp_GSE21374 %>% as.matrix()
       userExpression <- userExpression %>% as.matrix()
       
       y1 = as.factor(p_GSE36059$diagnosis)
       y2 = as.factor(p_GSE48581$diagnosis)
-      y3 = as.factor(p_GSE46474$diagnosis)
+      y3 = as.factor(p_GSE21374$diagnosis)
       
     withProgress(message = 'Executing CPOP', value = 0, {
       incProgress(0.5, detail = paste("Starting CPOP in parallel"))
@@ -392,115 +394,118 @@ shinyServer(function(input, output) {
     
     
     results <- cpop_coef %>% select(coef_name, coef1, coef2)
+    
+    cpopOutputs[[1]]$coef_tbl = cpopOutputs[[1]]$coef_tbl %>% filter(coef_name != "(Intercept)")
+    cpopOutputs[[2]]$coef_tbl = cpopOutputs[[2]]$coef_tbl %>% filter(coef_name != "(Intercept)")
+    cpopOutputs[[3]]$coef_tbl = cpopOutputs[[3]]$coef_tbl %>% filter(coef_name != "(Intercept)")
       
       
-      output$userFileVisNetwork <- renderVisNetwork({
-        makeVisnetwork(results) 
+    output$userFileVisNetwork <- renderVisNetwork({
+      makeVisnetwork(results) 
+    })
+    
+    output$v1 <- renderVisNetwork({
+      makeVisnetwork(cpopOutputs[[1]]$coef_tbl) 
+    })
+    output$v2 <- renderVisNetwork({
+      makeVisnetwork(cpopOutputs[[2]]$coef_tbl) 
+    })
+    output$v3 <- renderVisNetwork({
+      makeVisnetwork(cpopOutputs[[3]]$coef_tbl) 
+    })
+    
+    output$pairwiseGenes <- DT::renderDataTable({
+        data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = cpop_coef$avg)
       })
+    
+    withProgress(message = 'Finished CPOP! Now combining data', value = 0, { 
+    # Add gender and source column to each of the 4 data frames
+    ue <- pairwise(userExpression, "Log")
+    temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+    temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+    temp_GSE21374 <- pairwise(exp_GSE21374, "Log")
+    
+    boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
+    
+    ue$outcome <- userBinaryOutcomes
+    ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
+    ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
+    
+    
+    
+    temp_GSE36059$outcome <- y1
+    temp_GSE36059$biological_sex <- calculate_gender(exp_GSE36059)
+    temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
+    
+    
+    
+    temp_GSE48581$outcome <- y2
+    temp_GSE48581$biological_sex <- calculate_gender(exp_GSE48581)
+    temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
+    
+    
+    temp_GSE21374$outcome <- y3
+    temp_GSE21374$biological_sex <- calculate_gender(exp_GSE21374)
+    temp_GSE21374$source <- c(rep("public GSE21374", length(rownames(exp_GSE21374))))
+    
+    incProgress(0.5, detail = paste("Combining all the data"))
+    
+    combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
+    
+    colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
+    
+    compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
+    })
+    
+    
+    
+    output$boxplot <- renderPlot({
+      ggplot(data = compareCombinedData, aes(x = object, y = means)) +
+        geom_point(aes(color = source), size = 0.1) +
+        geom_errorbar(aes(ymin = q1,
+                          ymax = q3,
+                          color = source), size = 0.1,  alpha = 0.2) +
+        ggsci::scale_color_d3() +
+        theme(axis.ticks = element_blank()) +
+        theme(axis.text.x = element_blank()) +
+        xlab("Samples") +
+        theme(axis.title.y=element_blank()) +
+        labs(title = "Log transformation + pairwise difference") +
+        theme(plot.title = element_text(size=10))
+    })
       
-      output$v1 <- renderVisNetwork({
-        makeVisnetwork(cpopOutputs[[1]]$coef_tbl) 
-      })
-      output$v2 <- renderVisNetwork({
-        makeVisnetwork(cpopOutputs[[2]]$coef_tbl) 
-      })
-      output$v3 <- renderVisNetwork({
-        makeVisnetwork(cpopOutputs[[3]]$coef_tbl) 
-      })
+    
+    output$dc <- downloadHandler(filename = function() {
+      if(input$select == 1){
+        paste("maleAndFemaleCombinedDataset-", Sys.Date(), ".csv", sep="")
+      }
+      else if (input$select == 2){
+        paste("maleDataset-", Sys.Date(), ".csv", sep="")
+      }
+      else if (input$select == 3){
+        paste("femaleDataset-", Sys.Date(), ".csv", sep="")
+      }
       
-      output$pairwiseGenes <- DT::renderDataTable({
-          data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = cpop_coef$avg)
-        })
+    },
+    content = function(file) {
+      if(input$select == 1){
+        write_csv(combinedDataset, file)
+      }
+      else if (input$select == 2){
+        write_csv(combinedDataset[which(combinedDataset$gender == 0),], file)
+      }
+      else if (input$select == 3){
+        write_csv(combinedDataset[which(combinedDataset$gender == 1),], file)
+      }
+    },
+    contentType = "text/csv"
+    )
       
-      withProgress(message = 'Finished CPOP! Now combining data', value = 0, { 
-      # Add gender and source column to each of the 4 data frames
-      ue <- pairwise(userExpression, "Log")
-      temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
-      temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
-      temp_GSE46474 <- pairwise(exp_GSE46474, "Log")
-      
-      boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
-      
-      ue$outcome <- userBinaryOutcomes
-      ue$gender <- calculate_gender(as.data.frame(userExpression))
-      ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
-      
-      
-      
-      temp_GSE36059$outcome <- y1
-      temp_GSE36059$gender <- calculate_gender(exp_GSE36059)
-      temp_GSE36059$source <- c(rep("public GSE36059", length(rownames(exp_GSE36059))))
-      
-      
-      
-      temp_GSE48581$outcome <- y2
-      temp_GSE48581$gender <- calculate_gender(exp_GSE48581)
-      temp_GSE48581$source <- c(rep("public GSE48581", length(rownames(exp_GSE48581))))
-      
-      
-      temp_GSE46474$outcome <- y3
-      temp_GSE46474$gender <- calculate_gender(exp_GSE46474)
-      temp_GSE46474$source <- c(rep("public GSE46474", length(rownames(exp_GSE46474))))
-      
-      incProgress(0.5, detail = paste("Combining all the data"))
-      
-      combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE46474,ue )
-      
-      colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
-      
-      compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
-      })
-      
-      
-      
-      
-      output$boxplot <- renderPlot({
-        ggplot(data = compareCombinedData, aes(x = object, y = means)) +
-          geom_point(aes(color = source), size = 0.1) +
-          geom_errorbar(aes(ymin = q1,
-                            ymax = q3,
-                            color = source), size = 0.1,  alpha = 0.2) +
-          ggsci::scale_color_d3() +
-          theme(axis.ticks = element_blank()) +
-          theme(axis.text.x = element_blank()) +
-          xlab("Samples") +
-          theme(axis.title.y=element_blank()) +
-          labs(title = "Log transformation + pairwise difference") +
-          theme(plot.title = element_text(size=10))
-      })
-      
-      
-      output$dc <- downloadHandler(filename = function() {
-        if(input$select == 1){
-          paste("maleAndFemaleCombinedDataset-", Sys.Date(), ".csv", sep="")
-        }
-        else if (input$select == 2){
-          paste("maleDataset-", Sys.Date(), ".csv", sep="")
-        }
-        else if (input$select == 3){
-          paste("femaleDataset-", Sys.Date(), ".csv", sep="")
-        }
-        
-      },
-      content = function(file) {
-        if(input$select == 1){
-          write_csv(combinedDataset, file)
-        }
-        else if (input$select == 2){
-          write_csv(combinedDataset[which(combinedDataset$gender == 0),], file)
-        }
-        else if (input$select == 3){
-          write_csv(combinedDataset[which(combinedDataset$gender == 1),], file)
-        }
-      },
-      contentType = "text/csv"
-      )
-      
-      
-      toc(log=TRUE)
-      
-      return("Success!")
-    }
+    
+    toc(log=TRUE)
+    
+    return("Success!")
+  }
     
   })
   

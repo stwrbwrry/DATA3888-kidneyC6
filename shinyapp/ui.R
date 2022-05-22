@@ -78,7 +78,7 @@ shinyUI(
                             ),
                             column(4 ,
                                    hidden(
-                                     div(id="v3box",h4("GSE46474 vs uploaded data"),
+                                     div(id="v3box",h4("GSE21374 vs uploaded data"),
                                          visNetworkOutput( "v3")
                                      )
                                    )
