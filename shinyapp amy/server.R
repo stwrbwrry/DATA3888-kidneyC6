@@ -398,20 +398,19 @@ shinyServer(function(input, output) {
       })
       
       output$plot_list <- renderUI({
-        req(input$checkGroup)
-        output = tagList()
+        plotList <- list()
         
-        if(any(input$checkGroup %in% "GSE36059")){
-          output[[1]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl)})
+        if("GSE36059" %in% input$checkGroup){
+          plotList[[1]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl)})
         }
-        if(any(input$checkGroup %in% "GSE48581")){
-          output[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl)})
+        if("GSE48581" %in% input$checkGroup){
+          plotList[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl)})
         }
-        if(any(input$checkGroup %in% "GSE46474")){
-          output[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl)})
+        if("GSE46474" %in% input$checkGroup){
+          plotList[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl)})
         }
         
-        output
+        do.call(splitLayout, plotList)
       })
       
       output$pairwiseGenes <- DT::renderDataTable({

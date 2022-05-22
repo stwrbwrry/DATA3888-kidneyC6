@@ -9,7 +9,7 @@
 
 library(shiny)
 library(shinyjs)
-library(shinythemes)
+#library(shinythemes)
 library(shinydashboard)
 library(visNetwork)
 library(DT)
