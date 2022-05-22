@@ -408,21 +408,30 @@ shinyServer(function(input, output) {
         makeVisnetwork(results, "lightblue") 
       })
       
-      output$plot_list <- renderUI({
+      output[["plota"]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl, "purple")})
+      
+      output[["plotb"]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl, "grey")})
+      
+      output[["plotc"]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl, "brown")})
+      
+      
+      output[["plot_list"]] <- renderUI({
         plotList <- list()
         
         if("GSE36059" %in% input$checkGroup){
-          plotList[[1]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl, "purple")})
+          plotList <- c(plotList, list(visNetworkOutput("plota")))
         }
         if("GSE48581" %in% input$checkGroup){
-          plotList[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl, "grey")})
+          plotList <- c(plotList, list(visNetworkOutput("plotb")))
         }
         if("GSE21374" %in% input$checkGroup){
-          plotList[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl, "brown")})
+          plotList <- c(plotList, list(visNetworkOutput("plotc")))
         }
         
         do.call(splitLayout, plotList)
       })
+      
+      
       
       output$pairwiseGenes <- DT::renderDataTable({
         data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = round(cpop_coef$avg, 3))
