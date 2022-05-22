@@ -73,7 +73,7 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse){
                     intercept = FALSE))
 }
 
-makeVisnetwork <- function(cpopDF){
+makeVisnetwork <- function(cpopDF, colorCode){
   cpopDF$average <- rowMeans(cpopDF[,-1])
   coef <- cpopDF$coef_name
   names = data.frame(feature1 = rep("",length(coef)),
@@ -117,7 +117,7 @@ makeVisnetwork <- function(cpopDF){
   edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
   nodes = data.frame(id = c(1:length(names_uniq)), 
                      label = names_uniq, 
-                     # color = clr,
+                     color = colorCode,
                      title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
   #nodes
   
@@ -405,20 +405,20 @@ shinyServer(function(input, output) {
       
 
       output$userFileVisNetwork <- renderVisNetwork({
-        makeVisnetwork(results) 
+        makeVisnetwork(results, "lightblue") 
       })
       
       output$plot_list <- renderUI({
         plotList <- list()
         
         if("GSE36059" %in% input$checkGroup){
-          plotList[[1]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl)})
+          plotList[[1]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[1]]$coef_tbl, "purple")})
         }
         if("GSE48581" %in% input$checkGroup){
-          plotList[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl)})
+          plotList[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl, "grey")})
         }
         if("GSE21374" %in% input$checkGroup){
-          plotList[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl)})
+          plotList[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl, "brown")})
         }
         
         do.call(splitLayout, plotList)
