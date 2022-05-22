@@ -17,6 +17,7 @@ library(shiny)
 library(GEOquery) 
 library(DT)
 library(class)
+library(viridis)
 
 # set up multi processing, works on khang's mac mini but remove workers if on server
 future::plan(multisession)
@@ -434,11 +435,15 @@ shinyServer(function(input, output) {
         temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
         temp_GSE21374 <- pairwise(exp_GSE21374, "Log")
         
-        boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
+        as.data.frame(t(userExpression))
+        
+        boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374, ue)
+        #boxplotInput <- bind_rows(exp_GSE36059,exp_GSE48581, exp_GSE21374, as.data.frame(userExpression))
+        
         
         ue$outcome <- userBinaryOutcomes
         #ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
-        ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
+        ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
         
         print(ue$biological_sex)
         
@@ -528,14 +533,13 @@ shinyServer(function(input, output) {
           geom_point(aes(color = source), size = 0.1) +
           geom_errorbar(aes(ymin = q1,
                             ymax = q3,
-                            color = source), size = 0.1,  alpha = 0.2) +
-          ggsci::scale_color_d3() +
+                            color = source), size = 0.15,  alpha = 0.55) +
           theme(axis.ticks = element_blank()) +
           theme(axis.text.x = element_blank()) +
-          xlab("Samples") +
+          xlab("Samples") +  ylab("Expression Level (Log)") +
           theme(axis.title.y=element_blank()) +
-          labs(title = "Log transformation + pairwise difference") +
-          theme(plot.title = element_text(size=10))
+          labs(title = "Log Transformation + Pairwise Differences") +
+          theme(plot.title = element_text(size=10)) + scale_color_viridis(discrete = TRUE, option = "inferno", alpha = 1, begin = 0, end = 0.8)
       })
       
       
