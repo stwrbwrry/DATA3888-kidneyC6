@@ -527,7 +527,7 @@ shinyServer(function(input, output) {
         
         theme(axis.ticks = element_blank()) +
         theme(axis.text.x = element_blank()) +
-        xlab("Samples") +
+        xlab("Samples") +  ylab("Expression Level (Log)")+
         theme(axis.title.y=element_blank()) +
         labs(title = "Log Transformation + Pairwise Differences") +
         theme(plot.title = element_text(size=10)) + scale_color_viridis(discrete = TRUE, option = "inferno", alpha = 1, begin = 0, end = 0.8)
