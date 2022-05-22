@@ -417,7 +417,7 @@ shinyServer(function(input, output) {
         if("GSE48581" %in% input$checkGroup){
           plotList[[2]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[2]]$coef_tbl)})
         }
-        if("GSE46474" %in% input$checkGroup){
+        if("GSE21374" %in% input$checkGroup){
           plotList[[3]] <- renderVisNetwork({makeVisnetwork(cpopOutputs[[3]]$coef_tbl)})
         }
         

@@ -67,9 +67,9 @@ z-index: 1000;"
                            column(12, br()),
                            column(6, downloadButton("downloadData", "Download pairwise genes (CSV file)"))
                          )),
-                     box(width=NULL, title = "Comparison to in-house datasets", collapsible = TRUE, collapsed = TRUE,
+                     box(width=NULL, title = "Comparison to in-house datasets",
                          fluidRow(
-                           column(7, checkboxGroupInput("checkGroup", label = "Dataset to compare:", choices = list("GSE36059", "GSE48581", "GSE21374"), selected = "GSE36059"))),
+                           column(7, checkboxGroupInput("checkGroup", label = "Dataset to compare:", choices = list("GSE36059", "GSE48581", "GSE21374")))),
                          fluidRow(
                            column(12, uiOutput("plot_list"))
                      ))
