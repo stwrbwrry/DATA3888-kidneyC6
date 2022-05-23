@@ -54,6 +54,7 @@ gene_names = function(gse) {
   return(gse)
 }
 
+
 generateCPOPmodel <- function(user,userOutcomes, inhouse){
   set.seed(3888)
   return(cpop_model(user,
@@ -117,7 +118,7 @@ makeVisnetwork <- function(cpopDF, colorCode){
   edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
   nodes = data.frame(id = c(1:length(names_uniq)), 
                      label = names_uniq, 
-                     color = colorCode,
+                     # color = clr,
                      title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
   #nodes
   
@@ -158,7 +159,7 @@ calculate_gender = function(dataframe) {
   #     outcome = dataframe$outcome
   #     dataframe = select(dataframe, -one_of("outcome"))
   # }
-  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "ankrd44" %in% colnames(dataframe)) {
+  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "rps4y1" %in% colnames(dataframe)) {
     # known_genes =  c()
     
     outcome_df = dataframe %>% select("xist", "eif1ay","rps4y1")
@@ -296,6 +297,7 @@ shinyServer(function(input, output) {
       })
       
       
+      
       # TODO: save RDS object  of the exp_GSE expression dataframes
       ## keeping only the 2000 most variable genes in my data frame 
       exp_GSE36059 = (exprs(GSE36059))
@@ -306,7 +308,7 @@ shinyServer(function(input, output) {
       exp_GSE36059 = as.data.frame(exp_GSE36059)
       
       exp_GSE36059 = cbind(exp_GSE36059, variance = Variance)
-      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 100) # For each column, get the 500 most variable genes, so you get 2000 rows
+      exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 100) # For each column, get the 300 most variable genes, so you get 2000 rows
       exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance))
       
       row_names_exp_GSE36059 = rownames(exp_GSE36059) # used for finding common probe ids
@@ -317,7 +319,7 @@ shinyServer(function(input, output) {
       
       Variance = rowVars(as.matrix(exp_GSE21374))
       Variance = as.data.frame(Variance)
-      exp_GSE46474 = as.data.frame(exp_GSE21374)
+      exp_GSE21374 = as.data.frame(exp_GSE21374)
       
       
       exp_GSE21374 = cbind(exp_GSE21374, variance = Variance)
@@ -397,13 +399,11 @@ shinyServer(function(input, output) {
       results <- cpop_coef %>% select(coef_name, coef1, coef2)
       results = subset(results, !duplicated(subset(results, select = c(coef_name))))
       
-      
       cpopOutputs[[1]]$coef_tbl = cpopOutputs[[1]]$coef_tbl %>% filter(coef_name != "(Intercept)")
       cpopOutputs[[2]]$coef_tbl = cpopOutputs[[2]]$coef_tbl %>% filter(coef_name != "(Intercept)")
       cpopOutputs[[3]]$coef_tbl = cpopOutputs[[3]]$coef_tbl %>% filter(coef_name != "(Intercept)")
       
       
-
       output$userFileVisNetwork <- renderVisNetwork({
         makeVisnetwork(results, "lightblue") 
       })
@@ -433,6 +433,8 @@ shinyServer(function(input, output) {
       
       
       
+      
+    
       output$pairwiseGenes <- DT::renderDataTable({
         data.frame(`Top Pairwise Genes` = cpop_coef$coef_name, `Average Coefficient Weight` = round(cpop_coef$avg, 3))
       })
@@ -449,12 +451,11 @@ shinyServer(function(input, output) {
         boxplotInput <- bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374, ue)
         #boxplotInput <- bind_rows(exp_GSE36059,exp_GSE48581, exp_GSE21374, as.data.frame(userExpression))
         
-        
         ue$outcome <- userBinaryOutcomes
-        #ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
         ue$biological_sex <- calculate_gender(as.data.frame(userExpression))
-        
+        ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
         print(ue$biological_sex)
+        
         
         temp_GSE36059$outcome <- y1
         temp_GSE36059$biological_sex <- calculate_gender(data.frame(t(exprs(GSE36059))))
@@ -474,11 +475,11 @@ shinyServer(function(input, output) {
         incProgress(0.5, detail = paste("Combining all the data"))
         
         combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
-        
         colnames(combinedDataset) <- sub("\\.\\.","-", colnames(combinedDataset))
         
         compareCombinedData = cbind(boxplot_tbl(boxplotInput, index =1), source= combinedDataset$source)
       })
+      
       
       
       
@@ -534,18 +535,16 @@ shinyServer(function(input, output) {
       })
       
       
-      
-      
-      
       output$boxplot <- renderPlot({
         ggplot(data = compareCombinedData, aes(x = object, y = means)) +
           geom_point(aes(color = source), size = 0.1) +
           geom_errorbar(aes(ymin = q1,
                             ymax = q3,
                             color = source), size = 0.15,  alpha = 0.55) +
+          
           theme(axis.ticks = element_blank()) +
           theme(axis.text.x = element_blank()) +
-          xlab("Samples") +  ylab("Expression Level (Log)") +
+          xlab("Samples") +  ylab("Expression Level (Log)")+
           theme(axis.title.y=element_blank()) +
           labs(title = "Log Transformation + Pairwise Differences") +
           theme(plot.title = element_text(size=10)) + scale_color_viridis(discrete = TRUE, option = "inferno", alpha = 1, begin = 0, end = 0.8)
@@ -586,13 +585,20 @@ shinyServer(function(input, output) {
     
   })
   
-  observeEvent(input$datasetComb, {
-    shinyjs::toggle("combDesc")
-    output$text <- renderUI({
-      str1 <- paste("</br> Before combining the uploaded in-house data and public data, we apply a normalization procedure. This is done by first taking the log of all expression values, and then taking the pairwise differences of the top overlapping genes between all datasets. The transformed expression boxplot visualizes how the normalization process alleviates batch-differences. </br> Another issue we aim to solve is the lack of clinical variables present in historic expression data. By extracting key sex-specific expression biomarkers, we are able to predict biological sex of each observation. This is added to the final output dataframe which researchers can use in their own analysis and model building. We have included a filter so you can only download combined data for a specific biological sex if desired.") 
-      HTML(paste(str1))
-      })
+  observeEvent(input$showHide, {
+    shinyjs::toggle("v1box")
+    shinyjs::toggle("v2box")
+    shinyjs::toggle("v3box")
   })
+  
+  
+  
+  # Rubbish below for the other tab pages. Can delete or refactor.
+  output$carExample <- renderPrint({
+    head(mtcars,7)
+  })
+  
+  
   
   
   
@@ -609,3 +615,8 @@ shinyServer(function(input, output) {
   
   
 })
+
+
+
+
+
