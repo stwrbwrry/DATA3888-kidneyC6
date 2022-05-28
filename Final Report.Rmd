@@ -3,26 +3,355 @@ title: "Final Report"
 output: html_notebook
 ---
 
-# Introduction
+```{r}
+library(furrr)
+library(GEOquery) 
+library(DT)
+library(class)
+library(tidyverse)
+library(tuneR)
+library(devtools)
+library(ggplot2)
+library(tsfeatures)
+library(class)
+library(cvTools)
+library(randomForest)
+library(GEOquery) 
+library(R.utils)
+library(reshape2)
+library(limma)
+library(dplyr)
+library(e1071)
+library(DT)
+library(viridis)
+library(plotly)
+library(scales)
+library(CPOP)
+library(matrixStats)
+library(visNetwork)
+library(fairness)
+```
+
+```{r}
+# Data importing
+
+# GSE21374 = getGEO("GSE21374")[[1]]
+# GSE36059 = getGEO("GSE36059")[[1]]
+# GSE48581 = getGEO("GSE48581")[[1]]
+
+# GSE46474 = getGEO("GSE46474")[[1]]
+# GSE129166 = getGEO("GSE129166")[[1]] 
 
 
-# Data Cleaning
+# saveRDS(GSE21374, "data/GSE21374.rds") 
+# saveRDS(GSE48581, "data/GSE48581.rds") 
+# saveRDS(GSE36059, "data/GSE36059.rds")
 
-## Data Cleaning Flowchart
+# saveRDS(GSE46474, "data/GSE46474.rds")
+# saveRDS(GSE129166, "data/GSE129166.rds")
+
+# CPOP Model Building Datasets
+GSE21374 = readRDS("data/GSE21374.rds")
+GSE36059 <- readRDS("data/GSE36059.rds")
+GSE48581 <- readRDS("data/GSE48581.rds")
+
+# Auxilary Datasets
+GSE46474 <- readRDS("data/GSE46474.rds") # Builds Biological Sex knn
+user_input <- readRDS("data/GSE129166.rds") # External dataset used to generate final model, full GSE used here rather than an expression csv as was seen in the Shiny app to decrease pipeline complexity
+```
 
 
-# Data Integration
+# Executive Summary
+
+# Background
 
 
-# Model Creation and Evaluation
+# Methods
+```{r}
+# Transforms Affymetrics probe ID into Gene Name
+gene_names = function(gse) {
+  fData(gse)$`Gene Symbol` = unlist(lapply(strsplit(fData(gse)$`Gene Symbol`, " /// ", 1), `[`, 1))
 
-## Evaluation Flowchart
+  idx = which(!duplicated(fData(gse)$`Gene Symbol`) & !is.na(fData(gse)$`Gene Symbol`))
+  gse = gse[idx,]
+  rownames(gse) = fData(gse)$`Gene Symbol`
+  
+  return(gse)
+}
+
+GSE21374 = gene_names(GSE21374)
+GSE36059 = gene_names(GSE36059)
+GSE48581 = gene_names(GSE48581)
+GSE46474 = gene_names(GSE46474)
+user_input = gene_names(user_input)
+```
+
+```{r}
+# Transforms and removes genes with low variance
+
+exp_GSE36059 = (exprs(GSE36059)) # Import Expression data
+Variance = rowVars(as.matrix(exp_GSE36059)) # Extract variance
+Variance = as.data.frame(Variance) 
+exp_GSE36059 = as.data.frame(exp_GSE36059)
+exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # Add variance column to expression data
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 200) # Orders expression data from most to least variable then takes the top 200 values
+exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) # removes the variance column
+row_names_exp_GSE36059 = rownames(exp_GSE36059) # Takes the gene names for later
 
 
-# About the Shiny App (May not be needed for the report)
+exp_GSE21374 = (exprs(GSE21374))
+Variance = rowVars(as.matrix(exp_GSE21374))
+Variance = as.data.frame(Variance)
+exp_GSE21374 = as.data.frame(exp_GSE21374)
+exp_GSE21374 = cbind(exp_GSE21374, variance = Variance)
+exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 200)
+exp_GSE21374 = subset(exp_GSE21374, select = -c(Variance))
+row_names_exp_GSE21374 = rownames(exp_GSE21374)
 
 
-# Results and Interpretation
+exp_GSE48581 = (exprs(GSE48581))
+Variance = rowVars(as.matrix(exp_GSE48581))
+Variance = as.data.frame(Variance)
+exp_GSE48581 = as.data.frame(exp_GSE48581)
+exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
+exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 200)
+exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance)) 
+row_names_exp_GSE48581 = rownames(exp_GSE48581)
+
+userExpression = exprs(user_input)
+Variance = rowVars(as.matrix(userExpression))
+Variance = as.data.frame(Variance)
+userExpression = as.data.frame(userExpression)
+userExpression = cbind(userExpression, variance = Variance)
+userExpression = slice_max(userExpression, order_by = Variance, n = 200)
+userExpression = subset(userExpression, select = -c(Variance)) 
+row_names_UE = rownames(userExpression)
+
+
+```
+
+
+```{r}
+# Takes the common genes from the datasets
+intersection = intersect(row_names_exp_GSE36059, row_names_exp_GSE21374)
+intersection = intersect(intersection, row_names_exp_GSE48581)
+intersection = intersect(intersection, row_names_UE)
+
+exp_GSE36059 = as.data.frame(t(as.matrix(exp_GSE36059)))
+exp_GSE36059 = subset(exp_GSE36059, select = c(intersection)) # select rows that contain the probe ids in intersection
+      
+exp_GSE21374 = as.data.frame(t(as.matrix(exp_GSE21374)))
+exp_GSE21374 = subset(exp_GSE21374, select = c(intersection)) 
+
+exp_GSE48581 = as.data.frame(t(as.matrix(exp_GSE48581)))
+exp_GSE48581 = subset(exp_GSE48581, select = c(intersection)) 
+
+userExpression = as.data.frame(t(as.matrix(userExpression)))
+userExpression = subset(userExpression, select = c(intersection))
+```
+
+
+```{r}
+z1 = exp_GSE36059 %>% as.matrix()
+z2 = exp_GSE48581 %>% as.matrix()
+z3 = exp_GSE21374 %>% as.matrix()
+userExpression_z = userExpression %>% as.matrix()
+
+
+
+# log transforms the data
+
+exp_GSE36059_log <- exp_GSE36059
+exp_GSE36059_log = exp_GSE36059_log + 1
+exp_GSE36059_log = log(exp_GSE36059_log)
+
+exp_GSE21374_log <- exp_GSE21374
+exp_GSE21374_log = exp_GSE21374_log + 1
+exp_GSE21374_log = log(exp_GSE21374_log)
+
+exp_GSE48581_log <- exp_GSE48581
+exp_GSE48581_log = exp_GSE48581_log + 1
+exp_GSE48581_log = log(exp_GSE48581_log)
+
+ue_log = userExpression
+ue_log = ue_log + 1
+ue_log = log(ue_log)
+
+
+z1_log = exp_GSE36059_log  %>% as.matrix()
+z3_log = exp_GSE21374_log %>% as.matrix()
+z2_log = exp_GSE48581_log %>% as.matrix()
+ue_log = ue_log %>% as.matrix()
+```
+
+```{r}
+# Convert reject and stable labels to binary outcome vector (0,1)
+p_GSE21374 = pData(GSE21374)
+p_GSE48581 = pData(GSE48581) 
+p_GSE36059 = pData(GSE36059)
+p_ue = pData(user_input)
+
+p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+p_GSE21374$diagnosis = ifelse(p_GSE21374$characteristics_ch1.3 == "rejection/non rejection: nonrej", 0, 1)
+userOutcomes = ifelse((p_ue$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (p_ue$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+
+y1 = as.factor(p_GSE36059$diagnosis)
+y2 = as.factor(p_GSE48581$diagnosis)
+y3 = as.factor(p_GSE21374$diagnosis)
+userOutcomes = as.factor(userOutcomes)
+```
+
+```{r}
+# Perform Pairwise difference calculation for later use
+z1_pairwise = data.frame(pairwise_col_diff(z1_log) %>% as.matrix())
+z2_pairwise = data.frame(pairwise_col_diff(z2_log) %>% as.matrix())
+z3_pairwise = data.frame(pairwise_col_diff(z3_log) %>% as.matrix())
+```
+
+```{r}
+# CPOP Model construction for use within future map function
+generateCPOPmodel <- function(user,userOutcomes, inhouse){
+  set.seed(3888)
+  return(cpop_model(user,
+                    inhouse[[1]], # inhouse[1] is the expression matrix only
+                    userOutcomes,
+                    inhouse[[2]], #inhouse[2] is the inhouse Outcomes
+                    w = NULL,
+                    n_features = 30,
+                    n_iter = 30,
+                    alpha = 1,
+                    family = "binomial",
+                    s = "lambda.min",
+                    cpop2_break = TRUE,
+                    cpop2_type = "sign",
+                    cpop2_mag = 1,
+                    cpop1_method = "normal",
+                    intercept = FALSE))
+}
+```
+
+
+
+```{r}
+# Generates 3 CPOP models between our datasets and the user inputted dataset
+cpopOutputs <- future_map(list(list(z1_log,y1),list(z2_log,y2), list(z3_log,y3)), generateCPOPmodel, user= ue_log, userOutcomes=userOutcomes)
+```
+
+```{r}
+# Takes the top 20 features from the combination between all the models
+cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
+    
+cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
+cpop_coef = head(cpop_coef %>% arrange(desc(avg)), 20)
+      
+top_features = cpop_coef$coef_name[-1]
+
+
+results <- cpop_coef %>% select(coef_name, coef1, coef2)
+results = subset(results, !duplicated(subset(results, select = c(coef_name))))
+```
+
+```{r}
+# Quick function to simplify the pairwise difference taking. Was use predominantly to see what the different transformations did
+pairwise = function(exp_GSE, transform_type) {
+  z = exp_GSE
+  if (transform_type == "Arc") {
+    z = z / max(z)
+    z = asin(sqrt(z))
+    z = pairwise_col_diff(z) %>% as.matrix()
+  }
+  else if (transform_type == "Log") {
+    z <- pairwise_col_diff(log(z +1))
+    colnames(z) <- sub(".*\\.","",colnames(z))
+    z = z %>% as.matrix()
+  }
+  else if (transform_type == "Pair"){
+    z = z %>% as.matrix()
+    z_pairwise = pairwise_col_diff(z) %>% as.matrix()
+    
+  }
+  z = data.frame(z)
+  
+  return(z)
+}
+```
+
+
+```{r}
+# Combine pairwise data
+ue <- pairwise(userExpression, "Log")
+temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
+temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
+temp_GSE21374 <- pairwise(exp_GSE21374, "Log")
+```
+
+```{r}
+results
+```
+
+
+```{r}
+results$average <- rowMeans(results[,-1])
+  coef <- results$coef_name
+  names = data.frame(feature1 = rep("",length(coef)),
+                     feature2 = rep("",length(coef)),
+                     coef_size = abs(results$average))
+  
+  names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
+  names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
+  
+  names_uniq = unique(c(names$feature1, names$feature2))
+  # names_uniq
+  numbers = names
+  #numbers
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature2[a] == names_uniq[i]) {
+        numbers$feature2[a] = i
+      }
+    }
+  }
+  for (a in 1:nrow(numbers)) {
+    for (i in 1:length(names_uniq)) {
+      if (numbers$feature1[a] == names_uniq[i]) {
+        numbers$feature1[a] = i
+      }
+    }
+  }
+  #numbers
+  clr = c()
+  for (a in 1:length(names_uniq)) {
+    for (i in 1:nrow(names)) {
+      if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+        clr[a] = names$color[i]
+      }
+    }
+  }
+  #clr
+  
+  cleanNames <- sub("--.*","",names_uniq)
+  
+  edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+  nodes = data.frame(id = c(1:length(names_uniq)), 
+                     label = names_uniq, 
+                     # color = clr,
+                     title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+  #nodes
+  
+visNetwork(nodes, edges, height = "500px", width = "100%")
+
+```
+
+
+# Results
+
+
+# Discussion
 
 
 # Conclusion
+
+
+
+# Appendix
