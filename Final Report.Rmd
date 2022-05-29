@@ -30,6 +30,7 @@ library(CPOP)
 library(matrixStats)
 library(visNetwork)
 library(fairness)
+set.seed(3888)
 ```
 
 ```{r}
@@ -87,6 +88,28 @@ user_input = gene_names(user_input)
 ```
 
 ```{r}
+# Convert reject and stable labels to binary outcome vector (0,1)
+p_GSE21374 = pData(GSE21374)
+p_GSE48581 = pData(GSE48581) 
+p_GSE36059 = pData(GSE36059)
+p_ue = pData(user_input)
+p_ue = p_ue %>% filter(characteristics_ch1 == "tissue: kidney allograft biopsy") # GSE129166 has a mix of blood and biopsy samples so we only extract the biopsy samples. In the shiny app, we assume that the input data is biopsy only
+ue_biopsy_samp = rownames(p_ue)
+
+
+p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
+p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
+p_GSE21374$diagnosis = ifelse(p_GSE21374$characteristics_ch1.3 == "rejection/non rejection: nonrej", 0, 1)
+userOutcomes = ifelse((p_ue$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (p_ue$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
+
+y1 = as.factor(p_GSE36059$diagnosis)
+y2 = as.factor(p_GSE48581$diagnosis)
+y3 = as.factor(p_GSE21374$diagnosis)
+userOutcomes = as.factor(userOutcomes)
+```
+
+
+```{r}
 # Transforms and removes genes with low variance
 
 exp_GSE36059 = (exprs(GSE36059)) # Import Expression data
@@ -94,7 +117,7 @@ Variance = rowVars(as.matrix(exp_GSE36059)) # Extract variance
 Variance = as.data.frame(Variance) 
 exp_GSE36059 = as.data.frame(exp_GSE36059)
 exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # Add variance column to expression data
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 200) # Orders expression data from most to least variable then takes the top 200 values
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 300) # Orders expression data from most to least variable then takes the top 200 values
 exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) # removes the variance column
 row_names_exp_GSE36059 = rownames(exp_GSE36059) # Takes the gene names for later
 
@@ -104,7 +127,7 @@ Variance = rowVars(as.matrix(exp_GSE21374))
 Variance = as.data.frame(Variance)
 exp_GSE21374 = as.data.frame(exp_GSE21374)
 exp_GSE21374 = cbind(exp_GSE21374, variance = Variance)
-exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 200)
+exp_GSE21374 = slice_max(exp_GSE21374, order_by = Variance, n = 300)
 exp_GSE21374 = subset(exp_GSE21374, select = -c(Variance))
 row_names_exp_GSE21374 = rownames(exp_GSE21374)
 
@@ -114,16 +137,17 @@ Variance = rowVars(as.matrix(exp_GSE48581))
 Variance = as.data.frame(Variance)
 exp_GSE48581 = as.data.frame(exp_GSE48581)
 exp_GSE48581 = cbind(exp_GSE48581, variance = Variance)
-exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 200)
+exp_GSE48581 = slice_max(exp_GSE48581, order_by = Variance, n = 300)
 exp_GSE48581 = subset(exp_GSE48581, select = -c(Variance)) 
 row_names_exp_GSE48581 = rownames(exp_GSE48581)
 
-userExpression = exprs(user_input)
+
+userExpression = exprs(user_input) 
 Variance = rowVars(as.matrix(userExpression))
 Variance = as.data.frame(Variance)
-userExpression = as.data.frame(userExpression)
+userExpression = as.data.frame(userExpression) %>% select(ue_biopsy_samp) # Only chooses biopsy samples
 userExpression = cbind(userExpression, variance = Variance)
-userExpression = slice_max(userExpression, order_by = Variance, n = 200)
+userExpression = slice_max(userExpression, order_by = Variance, n = 300)
 userExpression = subset(userExpression, select = -c(Variance)) 
 row_names_UE = rownames(userExpression)
 
@@ -185,24 +209,6 @@ ue_log = ue_log %>% as.matrix()
 ```
 
 ```{r}
-# Convert reject and stable labels to binary outcome vector (0,1)
-p_GSE21374 = pData(GSE21374)
-p_GSE48581 = pData(GSE48581) 
-p_GSE36059 = pData(GSE36059)
-p_ue = pData(user_input)
-
-p_GSE36059$diagnosis = ifelse(p_GSE36059$characteristics_ch1 == "diagnosis: non-rejecting", 0, 1)
-p_GSE48581$diagnosis = ifelse(p_GSE48581$characteristics_ch1.1 == "diagnosis (tcmr, abmr, mixed, non-rejecting, nephrectomy): non-rejecting", 0, 1)
-p_GSE21374$diagnosis = ifelse(p_GSE21374$characteristics_ch1.3 == "rejection/non rejection: nonrej", 0, 1)
-userOutcomes = ifelse((p_ue$characteristics_ch1.1 == "tcmr (no: 0_borderline:1_TCMR:2): 0") & (p_ue$characteristics_ch1.2 == "abmr (no: 0_Yes:1): 0"), 0, 1)
-
-y1 = as.factor(p_GSE36059$diagnosis)
-y2 = as.factor(p_GSE48581$diagnosis)
-y3 = as.factor(p_GSE21374$diagnosis)
-userOutcomes = as.factor(userOutcomes)
-```
-
-```{r}
 # Perform Pairwise difference calculation for later use
 z1_pairwise = data.frame(pairwise_col_diff(z1_log) %>% as.matrix())
 z2_pairwise = data.frame(pairwise_col_diff(z2_log) %>% as.matrix())
@@ -235,22 +241,135 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse){
 
 ```{r}
 # Generates 3 CPOP models between our datasets and the user inputted dataset
-cpopOutputs <- future_map(list(list(z1_log,y1),list(z2_log,y2), list(z3_log,y3)), generateCPOPmodel, user= ue_log, userOutcomes=userOutcomes)
+#cpopOutputs <- future_map(list(list(z1_log,y1),list(z2_log,y2), list(z3_log,y3)), generateCPOPmodel, user= ue_log, userOutcomes=userOutcomes, .options = future_options(seed = TRUE))
 ```
 
 ```{r}
 # Takes the top 20 features from the combination between all the models
-cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
-    
-cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
-cpop_coef = head(cpop_coef %>% arrange(desc(avg)), 20)
-      
-top_features = cpop_coef$coef_name[-1]
 
-
-results <- cpop_coef %>% select(coef_name, coef1, coef2)
-results = subset(results, !duplicated(subset(results, select = c(coef_name))))
+# cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
+# 
+# cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2 # Takes the average of the absolute value of the 2 generated coefficients to determine the absolute magnitude of the pairwise effect
+# cpop_coef = head(cpop_coef %>% arrange(desc(avg)), 20)
+# 
+# top_features = cpop_coef$coef_name[-1]
+# 
+# 
+# results <- cpop_coef %>% select(coef_name, coef1, coef2)
+# results = subset(results, !duplicated(subset(results, select = c(coef_name))))
+# results = results %>% filter(coef_name != "(Intercept)")
 ```
+
+```{r, include=FALSE}
+# Run cpop on each dataset combo 5 times and get the top features overall from each
+
+cpop1 = data.frame("coef_name", "coef1", "coef2", "avg")
+
+for (i in 1:5) {
+  model = cpop_model(z1_log,
+    ue_log,
+    y1,
+    userOutcomes, 
+    w = NULL,
+    n_features = 30,
+    n_iter = 30,
+    alpha = 1,
+    family = "binomial",
+    s = "lambda.min",
+    cpop2_break = TRUE,
+    cpop2_type = "sign",
+    cpop2_mag = 1,
+    cpop1_method = "normal",
+    intercept = FALSE)
+  cpop_coef = model$coef_tbl
+  cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
+  cpop1 = merge(cpop1, as.data.frame(cpop_coef), all = TRUE)
+  
+}
+
+cpop1 = cpop1 %>% select(coef_name, coef1, coef2, avg) %>% filter(coef_name != "(Intercept)") %>% arrange(desc(avg))
+cpop1 = subset(cpop1, !duplicated(subset(cpop1, select = c(coef_name))))
+```
+
+```{r, include=FALSE}
+# Run cpop on each dataset combo 5 times and get the top features overall from each
+
+cpop2 = data.frame("coef_name", "coef1", "coef2", "avg")
+
+for (i in 1:5) {
+  model = cpop_model(z2_log,
+    ue_log,
+    y2,
+    userOutcomes, 
+    w = NULL,
+    n_features = 30,
+    n_iter = 30,
+    alpha = 1,
+    family = "binomial",
+    s = "lambda.min",
+    cpop2_break = TRUE,
+    cpop2_type = "sign",
+    cpop2_mag = 1,
+    cpop1_method = "normal",
+    intercept = FALSE)
+  cpop_coef = model$coef_tbl
+  cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
+  cpop2 = merge(cpop2, as.data.frame(cpop_coef), all = TRUE)
+  
+}
+
+cpop2 = cpop2 %>% select(coef_name, coef1, coef2, avg) %>% filter(coef_name != "(Intercept)") %>% arrange(desc(avg))
+cpop2 = subset(cpop2, !duplicated(subset(cpop2, select = c(coef_name))))
+```
+
+```{r, include=FALSE}
+# Run cpop on each dataset combo 5 times and get the top features overall from each
+
+cpop3 = data.frame("coef_name", "coef1", "coef2", "avg")
+
+for (i in 1:5) {
+  model = cpop_model(z3_log,
+    ue_log,
+    y3,
+    userOutcomes, 
+    w = NULL,
+    n_features = 30,
+    n_iter = 30,
+    alpha = 1,
+    family = "binomial",
+    s = "lambda.min",
+    cpop2_break = TRUE,
+    cpop2_type = "sign",
+    cpop2_mag = 1,
+    cpop1_method = "normal",
+    intercept = FALSE)
+  cpop_coef = model$coef_tbl
+  cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2
+  cpop3 = merge(cpop1, as.data.frame(cpop_coef), all = TRUE)
+  
+}
+
+cpop3 = cpop3 %>% select(coef_name, coef1, coef2, avg) %>% filter(coef_name != "(Intercept)") %>% arrange(desc(avg))
+cpop3 = subset(cpop3, !duplicated(subset(cpop3, select = c(coef_name))))
+```
+
+```{r}
+rownames(cpop1) = cpop1$coef_name
+rownames(cpop2) = cpop2$coef_name
+rownames(cpop3) = cpop3$coef_name
+results = merge(merge(cpop1, cpop2, all=FALSE, by = "coef_name"), cpop3, all=FALSE, by = "coef_name")
+```
+
+```{r}
+row.names(results) = results$coef_name
+results = results %>% select(-c(avg.x, avg.y, avg, coef_name))
+results = abs(results)
+results$average = rowMeans(results)
+results
+```
+
+
+
 
 ```{r}
 # Quick function to simplify the pairwise difference taking. Was use predominantly to see what the different transformations did
@@ -286,62 +405,59 @@ temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
 temp_GSE21374 <- pairwise(exp_GSE21374, "Log")
 ```
 
-```{r}
-results
-```
-
 
 ```{r}
-results$average <- rowMeans(results[,-1])
-  coef <- results$coef_name
-  names = data.frame(feature1 = rep("",length(coef)),
-                     feature2 = rep("",length(coef)),
-                     coef_size = abs(results$average))
-  
-  names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
-  names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
-  
-  names_uniq = unique(c(names$feature1, names$feature2))
-  # names_uniq
-  numbers = names
-  #numbers
-  for (a in 1:nrow(numbers)) {
-    for (i in 1:length(names_uniq)) {
-      if (numbers$feature2[a] == names_uniq[i]) {
-        numbers$feature2[a] = i
-      }
+# Generate visnetwork
+coef <- results$coef_name
+names = data.frame(feature1 = rep("",length(coef)),
+                   feature2 = rep("",length(coef)),
+                   coef_size = abs(results$average))
+
+names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
+names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
+
+names_uniq = unique(c(names$feature1, names$feature2))
+# names_uniq
+numbers = names
+#numbers
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature2[a] == names_uniq[i]) {
+      numbers$feature2[a] = i
     }
   }
-  for (a in 1:nrow(numbers)) {
-    for (i in 1:length(names_uniq)) {
-      if (numbers$feature1[a] == names_uniq[i]) {
-        numbers$feature1[a] = i
-      }
+}
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature1[a] == names_uniq[i]) {
+      numbers$feature1[a] = i
     }
   }
-  #numbers
-  clr = c()
-  for (a in 1:length(names_uniq)) {
-    for (i in 1:nrow(names)) {
-      if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
-        clr[a] = names$color[i]
-      }
+}
+#numbers
+clr = c()
+for (a in 1:length(names_uniq)) {
+  for (i in 1:nrow(names)) {
+    if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+      clr[a] = names$color[i]
     }
   }
-  #clr
+}
+#clr
+
+cleanNames <- sub("--.*","",names_uniq)
+
+edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+nodes = data.frame(id = c(1:length(names_uniq)), 
+                   label = names_uniq, 
+                   # color = clr,
+                   title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+#nodes
   
-  cleanNames <- sub("--.*","",names_uniq)
-  
-  edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
-  nodes = data.frame(id = c(1:length(names_uniq)), 
-                     label = names_uniq, 
-                     # color = clr,
-                     title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
-  #nodes
-  
-visNetwork(nodes, edges, height = "500px", width = "100%")
+visNetwork(nodes, edges, height = "500px", width = "100%", main = "Features Intersect Between CPOP Models")
 
 ```
+
 
 
 # Results
@@ -355,3 +471,121 @@ visNetwork(nodes, edges, height = "500px", width = "100%")
 
 
 # Appendix
+
+
+## Biological Sex Model
+
+```{r}
+exp_GSE46474 = (exprs(GSE46474))
+Variance = rowVars(as.matrix(exp_GSE46474))
+Variance = as.data.frame(Variance)
+exp_GSE46474 = as.data.frame(exp_GSE46474)
+exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
+exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 300)
+exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance)) 
+row_names_exp_GSE46474 = rownames(exp_GSE46474)
+exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474))) %>% select(c("XIST", "EIF1AY", "ANKRD44"))
+
+p_GSE46474 = pData(GSE46474)
+p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
+
+exp_GSE46474 = exp_GSE46474 + 1
+exp_GSE46474 = log(exp_GSE46474)
+exp_GSE46474 = pairwise_col_diff(exp_GSE46474) %>% as.matrix()
+```
+
+```{r}
+X1 = as.data.frame(exp_GSE46474)
+y1 = p_GSE46474$outcome
+```
+
+```{r}
+X1 = z
+y1 = p_GSE46474$outcome
+
+cvK = 5 # Number of CV folds
+cv_acc_knn = cv_50acc5_knn = c()
+
+for (i in 1:50) {
+  
+  cvSets = cvTools::cvFolds(nrow(X1), cvK)
+  
+  for (j in 1:cvK) {
+      test_id = cvSets$subsets[cvSets$which == j]
+      X_test = X1[test_id, ]
+      X_train = X1[-test_id, ]
+      y_test = y1[test_id]
+      y_train = y1[-test_id]
+      #KNN
+      fit <- knn(X_train, X_test, y_train, k = 3)
+      cv_acc_knn[j] = mean(fit == y_test)
+  }
+  
+  cv_50acc5_knn <- append(cv_50acc5_knn, mean(cv_acc_knn))
+}
+```
+
+```{r}
+mean(cv_50acc5_knn)
+```
+
+
+
+# Combined Feature Set VisNetwork
+```{r}
+combined_res = merge(merge(cpop1, cpop2, all=TRUE), cpop3, all=TRUE) %>% arrange(desc(avg))
+combined_res = subset(combined_res, !duplicated(subset(combined_res, select = c(coef_name))))
+combined_res
+```
+
+```{r}
+results = head(combined_res, 20)
+coef <- results$coef_name
+names = data.frame(feature1 = rep("",length(coef)),
+                   feature2 = rep("",length(coef)),
+                   coef_size = abs(results$avg))
+
+names$feature1 = sub("--.*", "", coef) #getting the first node from the coef-name vector of the results df
+names$feature2 = sub(".*--", "", coef) #getting the second node from the coef-name vector of the results df
+
+names_uniq = unique(c(names$feature1, names$feature2))
+# names_uniq
+numbers = names
+#numbers
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature2[a] == names_uniq[i]) {
+      numbers$feature2[a] = i
+    }
+  }
+}
+for (a in 1:nrow(numbers)) {
+  for (i in 1:length(names_uniq)) {
+    if (numbers$feature1[a] == names_uniq[i]) {
+      numbers$feature1[a] = i
+    }
+  }
+}
+#numbers
+clr = c()
+for (a in 1:length(names_uniq)) {
+  for (i in 1:nrow(names)) {
+    if (names_uniq[a] == names[i,1] | names_uniq[a] == names[i,2]) {
+      clr[a] = names$color[i]
+    }
+  }
+}
+#clr
+
+cleanNames <- sub("--.*","",names_uniq)
+
+edges = data.frame(from = numbers$feature1, to = numbers$feature2, value = names$coef_size)
+nodes = data.frame(id = c(1:length(names_uniq)), 
+                   label = names_uniq, 
+                   # color = clr,
+                   title = paste0('<a target="_blank" href = "https://www.genecards.org/cgi-bin/carddisp.pl?gene=',cleanNames,'">',cleanNames,'</a>'))
+#nodes
+  
+visNetwork(nodes, edges, height = "500px", width = "100%", main = "Top 20 Features by Coefficient Average From Complete CPOP Models Set")
+```
+
