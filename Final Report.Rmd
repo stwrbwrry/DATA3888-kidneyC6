@@ -3,7 +3,7 @@ title: "Final Report"
 output: html_notebook
 ---
 
-```{r}
+```{r, include=FALSE}
 library(furrr)
 library(GEOquery) 
 library(DT)
@@ -238,28 +238,6 @@ generateCPOPmodel <- function(user,userOutcomes, inhouse){
 ```
 
 
-
-```{r}
-# Generates 3 CPOP models between our datasets and the user inputted dataset
-#cpopOutputs <- future_map(list(list(z1_log,y1),list(z2_log,y2), list(z3_log,y3)), generateCPOPmodel, user= ue_log, userOutcomes=userOutcomes, .options = future_options(seed = TRUE))
-```
-
-```{r}
-# Takes the top 20 features from the combination between all the models
-
-# cpop_coef = merge(merge(cpopOutputs[[1]]$coef_tbl, cpopOutputs[[2]]$coef_tbl, all = TRUE), cpopOutputs[[3]]$coef_tbl, all = TRUE)
-# 
-# cpop_coef$avg = (abs(cpop_coef$coef1) + abs(cpop_coef$coef2)) / 2 # Takes the average of the absolute value of the 2 generated coefficients to determine the absolute magnitude of the pairwise effect
-# cpop_coef = head(cpop_coef %>% arrange(desc(avg)), 20)
-# 
-# top_features = cpop_coef$coef_name[-1]
-# 
-# 
-# results <- cpop_coef %>% select(coef_name, coef1, coef2)
-# results = subset(results, !duplicated(subset(results, select = c(coef_name))))
-# results = results %>% filter(coef_name != "(Intercept)")
-```
-
 ```{r, include=FALSE}
 # Run cpop on each dataset combo 5 times and get the top features overall from each
 
@@ -397,18 +375,12 @@ pairwise = function(exp_GSE, transform_type) {
 ```
 
 
-```{r}
-# Combine pairwise data
-ue <- pairwise(userExpression, "Log")
-temp_GSE36059 <- pairwise(exp_GSE36059, "Log")
-temp_GSE48581 <- pairwise(exp_GSE48581, "Log")
-temp_GSE21374 <- pairwise(exp_GSE21374, "Log")
-```
+
 
 
 ```{r}
 # Generate visnetwork
-coef <- results$coef_name
+coef <- rownames(results)
 names = data.frame(feature1 = rep("",length(coef)),
                    feature2 = rep("",length(coef)),
                    coef_size = abs(results$average))
@@ -456,6 +428,113 @@ nodes = data.frame(id = c(1:length(names_uniq)),
   
 visNetwork(nodes, edges, height = "500px", width = "100%", main = "Features Intersect Between CPOP Models")
 
+```
+
+```{r}
+
+ue <- as.data.frame(t(as.data.frame(exprs(user_input)) %>% select(ue_biopsy_samp))) 
+temp_GSE36059 <- as.data.frame(t(exprs(GSE36059)))
+temp_GSE48581 <- as.data.frame(t(exprs(GSE48581)))
+temp_GSE21374 <- as.data.frame(t(exprs(GSE21374)))
+```
+
+
+```{r}
+ue$outcome <- userOutcomes
+ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
+
+temp_GSE36059$outcome <- y1
+temp_GSE36059$source <- c(rep("GSE36059", length(rownames(temp_GSE36059))))
+
+temp_GSE48581$outcome <- y2
+temp_GSE48581$source <- c(rep("GSE48581", length(rownames(temp_GSE48581))))
+
+temp_GSE21374$outcome <- y3
+temp_GSE21374$source <- c(rep("GSE21374", length(rownames(temp_GSE21374))))
+
+combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
+outcome_source = combinedDataset %>% select(c(outcome, source))
+combinedDataset = t(combinedDataset %>% select(-c(outcome, source)))
+
+vars = rowVars(as.matrix(combinedDataset))
+vars = as.data.frame(vars)
+
+```
+
+
+```{r}
+combinedDataset = slice_max(cbind(combinedDataset, variance = vars), order_by = vars, n = 100)
+combinedDataset = as.data.frame(t(subset(combinedDataset, select = -c(vars))))
+combinedDataset = combinedDataset + 1
+combinedDataset = log(combinedDataset)
+combinedDataset = cbind(combinedDataset, outcome_source)
+```
+
+```{r}
+
+```
+
+
+```{r}
+# CPOP Cross Validation on Combined Dataset
+
+split = cvTools::cvFolds(nrow(combinedDataset), 2)
+split = split$subsets[split$which == 1]
+
+X1 = combinedDataset[split,] %>% select(-c(outcome, source))
+y1 = combinedDataset$outcome[split]
+
+X2 = combinedDataset[-split, ] %>% select(-c(outcome, source))
+y2 = combinedDataset$outcome[-split]
+
+X = combinedDataset %>% select(-c(outcome, source))
+y = combinedDataset$outcome
+```
+
+
+```{r}
+cvK = 5 # Number of CV folds
+cv_res = c()
+cv_obsv = c()
+
+cvSets = cvTools::cvFolds(nrow(X1), cvK)
+  
+for (i in 1:cvK) {
+    test_id = cvSets$subsets[cvSets$which == i]
+
+    X1_train = X1[-test_id, ] %>% as.matrix()
+    y1_train = y1[-test_id]
+    
+    X2_train = X2[-test_id, ] %>% as.matrix()
+    y2_train = y2[-test_id]
+    X_test = rbind(X1[test_id, ], X2[test_id, ]) %>% as.matrix()
+    y_test = c(y1[test_id], y2[test_id]) 
+    
+    model = cpop_model(X1_train,
+                        X2_train,
+                        y1_train,
+                        y2_train, 
+                        w = NULL,
+                        n_features = 30,
+                        n_iter = 30,
+                        alpha = 1,
+                        family = "binomial",
+                        s = "lambda.min",
+                        cpop2_break = TRUE,
+                        cpop2_type = "sign",
+                        cpop2_mag = 1,
+                        cpop1_method = "normal",
+                        intercept = FALSE)
+    prediction = predict_cpop(model, X_test)
+    cv_res = append(cv_res, prediction$cpop_model_avg_class)
+    cv_obsv = append(cv_obsv, prediction$samples)
+}
+```
+```{r}
+cv_res
+```
+```{r}
+combinedDataset
 ```
 
 
