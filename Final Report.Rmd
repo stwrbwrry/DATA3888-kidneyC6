@@ -30,7 +30,9 @@ library(CPOP)
 library(matrixStats)
 library(visNetwork)
 library(fairness)
-set.seed(3888)
+library(caret)
+library(ROCR)
+set.seed(3887)
 ```
 
 ```{r}
@@ -117,7 +119,7 @@ Variance = rowVars(as.matrix(exp_GSE36059)) # Extract variance
 Variance = as.data.frame(Variance) 
 exp_GSE36059 = as.data.frame(exp_GSE36059)
 exp_GSE36059 = cbind(exp_GSE36059, variance = Variance) # Add variance column to expression data
-exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 300) # Orders expression data from most to least variable then takes the top 200 values
+exp_GSE36059 = slice_max(exp_GSE36059, order_by = Variance, n = 300) # Orders expression data from most to least variable then takes the top 300 values
 exp_GSE36059 = subset(exp_GSE36059, select = -c(Variance)) # removes the variance column
 row_names_exp_GSE36059 = rownames(exp_GSE36059) # Takes the gene names for later
 
@@ -215,28 +217,6 @@ z2_pairwise = data.frame(pairwise_col_diff(z2_log) %>% as.matrix())
 z3_pairwise = data.frame(pairwise_col_diff(z3_log) %>% as.matrix())
 ```
 
-```{r}
-# CPOP Model construction for use within future map function
-generateCPOPmodel <- function(user,userOutcomes, inhouse){
-  set.seed(3888)
-  return(cpop_model(user,
-                    inhouse[[1]], # inhouse[1] is the expression matrix only
-                    userOutcomes,
-                    inhouse[[2]], #inhouse[2] is the inhouse Outcomes
-                    w = NULL,
-                    n_features = 30,
-                    n_iter = 30,
-                    alpha = 1,
-                    family = "binomial",
-                    s = "lambda.min",
-                    cpop2_break = TRUE,
-                    cpop2_type = "sign",
-                    cpop2_mag = 1,
-                    cpop1_method = "normal",
-                    intercept = FALSE))
-}
-```
-
 
 ```{r, include=FALSE}
 # Run cpop on each dataset combo 5 times and get the top features overall from each
@@ -332,6 +312,7 @@ cpop3 = subset(cpop3, !duplicated(subset(cpop3, select = c(coef_name))))
 ```
 
 ```{r}
+# Merge the 3 CPOP model features together
 rownames(cpop1) = cpop1$coef_name
 rownames(cpop2) = cpop2$coef_name
 rownames(cpop3) = cpop3$coef_name
@@ -343,7 +324,6 @@ row.names(results) = results$coef_name
 results = results %>% select(-c(avg.x, avg.y, avg, coef_name))
 results = abs(results)
 results$average = rowMeans(results)
-results
 ```
 
 
@@ -431,112 +411,245 @@ visNetwork(nodes, edges, height = "500px", width = "100%", main = "Features Inte
 ```
 
 ```{r}
-
+# Refresh the data for use in CV
 ue <- as.data.frame(t(as.data.frame(exprs(user_input)) %>% select(ue_biopsy_samp))) 
 temp_GSE36059 <- as.data.frame(t(exprs(GSE36059)))
 temp_GSE48581 <- as.data.frame(t(exprs(GSE48581)))
 temp_GSE21374 <- as.data.frame(t(exprs(GSE21374)))
 ```
 
+```{r}
+# Below function uses a KNN to predict biological sex for the incoming dataset
+calculate_sex = function(dataframe) {
+  colnames(dataframe) = tolower(colnames(dataframe))
+  if ("xist" %in% colnames(dataframe) && "eif1ay" %in% colnames(dataframe) && "rps4y1" %in% colnames(dataframe)) {
+    
+    # Extracts the right genes from the input dataset
+    outcome_df = dataframe %>% select("xist", "eif1ay", "rps4y1")
+    outcome_df = pairwise(outcome_df, transform_type = "Log") %>% as.matrix()
+    outcome_df = data.frame(outcome_df)
+    
+    # Performs cleaning on the training dataset GSE46474
+    p_GSE46474 = pData(GSE46474)
+    p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
+    exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
+    colnames(exprs_GSE46474) = tolower(colnames(exprs_GSE46474))
+    exprs_GSE46474 = exprs_GSE46474 %>% select("xist", "eif1ay", "rps4y1")
+    exprs_GSE46474 = pairwise(exprs_GSE46474, transform_type="Log") 
+    
+
+    # Model generation. CV results are in the appendix
+    model = knn(exprs_GSE46474, outcome_df, p_GSE46474$outcome, k = 3)
+    
+    return(model)
+    
+  }
+  return(NULL)
+}
+```
+
 
 ```{r}
+# Below code adds kidney graft outcome, biological sex info from KNNm and which dataset the observations are from
+
 ue$outcome <- userOutcomes
+ue$biological_sex <- calculate_sex(as.data.frame(userExpression))
 ue$source <- c(rep("userUploadedData", length(rownames(userExpression))))
 
 temp_GSE36059$outcome <- y1
+temp_GSE36059$biological_sex <- calculate_sex(data.frame(t(exprs(GSE36059))))
 temp_GSE36059$source <- c(rep("GSE36059", length(rownames(temp_GSE36059))))
 
 temp_GSE48581$outcome <- y2
+temp_GSE48581$biological_sex <- calculate_sex(data.frame(t(exprs(GSE48581))))
 temp_GSE48581$source <- c(rep("GSE48581", length(rownames(temp_GSE48581))))
 
 temp_GSE21374$outcome <- y3
+temp_GSE21374$biological_sex <- calculate_sex(data.frame(t(exprs(GSE21374))))
 temp_GSE21374$source <- c(rep("GSE21374", length(rownames(temp_GSE21374))))
 
-combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
-outcome_source = combinedDataset %>% select(c(outcome, source))
-combinedDataset = t(combinedDataset %>% select(-c(outcome, source)))
 
+# Combine the 4 datasets
+combinedDataset <-  bind_rows(temp_GSE36059,temp_GSE48581, temp_GSE21374,ue )
+outcome_source = combinedDataset %>% select(c(outcome, source, biological_sex)) # Temporarily remove non-gene cols in order to do variance analysis on each gene
+combinedDataset = t(combinedDataset %>% select(-c(outcome, source, biological_sex)))
+
+# Calculate variance of each gene
 vars = rowVars(as.matrix(combinedDataset))
 vars = as.data.frame(vars)
 
 ```
 
 
+
 ```{r}
+# Take top 100 most variable genes 
 combinedDataset = slice_max(cbind(combinedDataset, variance = vars), order_by = vars, n = 100)
 combinedDataset = as.data.frame(t(subset(combinedDataset, select = -c(vars))))
+
+combinedDatasetRaw = combinedDataset # For later boxplot
+
+# Log transform the combined dataset
 combinedDataset = combinedDataset + 1
 combinedDataset = log(combinedDataset)
 combinedDataset = cbind(combinedDataset, outcome_source)
-```
 
-```{r}
-
+combinedDatasetRaw$source = combinedDataset$source
 ```
 
 
 ```{r}
 # CPOP Cross Validation on Combined Dataset
 
-split = cvTools::cvFolds(nrow(combinedDataset), 2)
-split = split$subsets[split$which == 1]
+# split = cvTools::cvFolds(nrow(combinedDataset), 2)
+# split = split$subsets[split$which == 1]
+# 
+# X1 = combinedDataset[split,] %>% select(-c(outcome, source, biological_sex))
+# y1 = combinedDataset$outcome[split]
+# 
+# X2 = combinedDataset[-split, ] %>% select(-c(outcome, source, biological_sex))
+# y2 = combinedDataset$outcome[-split]
 
-X1 = combinedDataset[split,] %>% select(-c(outcome, source))
-y1 = combinedDataset$outcome[split]
-
-X2 = combinedDataset[-split, ] %>% select(-c(outcome, source))
-y2 = combinedDataset$outcome[-split]
-
-X = combinedDataset %>% select(-c(outcome, source))
+X = combinedDataset %>% select(-c(outcome, source, biological_sex))
+X = pairwise_col_diff(X)
 y = combinedDataset$outcome
 ```
 
 
-```{r}
+```{r, include=FALSE}
 cvK = 5 # Number of CV folds
+performance = vector(mode = "list", length = 5)
+
+cvSets = cvTools::cvFolds(nrow(X), cvK)
+
 cv_res = c()
 cv_obsv = c()
 
-cvSets = cvTools::cvFolds(nrow(X1), cvK)
+for (j in 1:cvK) {
+  test_id = cvSets$subsets[cvSets$which == j]
+
+  X_train = X[-test_id, ] 
+  X_test = X[test_id, ]
   
-for (i in 1:cvK) {
-    test_id = cvSets$subsets[cvSets$which == i]
-
-    X1_train = X1[-test_id, ] %>% as.matrix()
-    y1_train = y1[-test_id]
-    
-    X2_train = X2[-test_id, ] %>% as.matrix()
-    y2_train = y2[-test_id]
-    X_test = rbind(X1[test_id, ], X2[test_id, ]) %>% as.matrix()
-    y_test = c(y1[test_id], y2[test_id]) 
-    
-    model = cpop_model(X1_train,
-                        X2_train,
-                        y1_train,
-                        y2_train, 
-                        w = NULL,
-                        n_features = 30,
-                        n_iter = 30,
-                        alpha = 1,
-                        family = "binomial",
-                        s = "lambda.min",
-                        cpop2_break = TRUE,
-                        cpop2_type = "sign",
-                        cpop2_mag = 1,
-                        cpop1_method = "normal",
-                        intercept = FALSE)
-    prediction = predict_cpop(model, X_test)
-    cv_res = append(cv_res, prediction$cpop_model_avg_class)
-    cv_obsv = append(cv_obsv, prediction$samples)
+  y_train = y[-test_id]
+  y_test = y[test_id]
+  
+  prediction = knn(X_train, X_test, y_train, k = 10)
+  cv_res = append(cv_res, prediction)
+  cv_obsv = append(cv_obsv, rownames(X_test))
+  
 }
-```
-```{r}
-cv_res
-```
-```{r}
-combinedDataset
+iter_perf = data.frame(sample = cv_obsv, results = as.factor(cv_res))
+performance[i] = iter_perf
+
+  
+  
+
 ```
 
+
+```{r}
+observation_df = data.frame(sample = cv_obsv, results = as.factor(cv_res))
+rownames(observation_df) = observation_df$sample
+observation_df = observation_df %>% select(results)
+```
+
+```{r}
+performance_df = merge(combinedDataset, observation_df, by=0, all=TRUE) %>% select(Row.names, outcome, results, source, biological_sex)
+count(performance_df$outcome == performance_df$results)/nrow(performance_df)
+```
+```{r}
+performance_df$correct = ifelse(performance_df$results == performance_df$outcome, 1, 0)
+
+gse21374 = performance_df %>% filter(source == "GSE21374")
+gse36059 = performance_df %>% filter(source == "GSE36059")
+gse48581 = performance_df %>% filter(source == "GSE48581")
+user = performance_df %>% filter(source == "userUploadedData")
+
+data_acc = c(count(gse21374$correct == 1)/nrow(gse21374), count(gse36059$correct == 1)/nrow(gse36059), count(gse48581$correct == 1)/nrow(gse48581), count(user$correct == 1)/nrow(user))
+      data_pos = c(count(gse21374$results == 1)/nrow(gse21374), count(gse36059$results == 1)/nrow(gse36059), count(gse48581$results == 1)/nrow(gse48581), count(user$results == 1)/nrow(user))
+data_obsv = c(nrow(gse21374), nrow(gse36059), nrow(gse48581), nrow(user))
+
+
+male = performance_df %>% filter(biological_sex == 0)
+female = performance_df %>% filter(biological_sex == 1)
+
+gen_acc = c(count(male$correct == 1)/nrow(male), count(female$correct == 1)/nrow(female))
+gen_pos = c(count(male$results == 1)/nrow(male), count(female$results == 1)/nrow(female))
+gen_obsv = c(nrow(male), nrow(female))
+```
+
+```{r}
+data.frame(`Dataset` = c("GSE21374", "GSE36059", "GSE48581", "User Input"), Observations = data_obsv, Accuracy = round(data_acc, 2), `Positive Prediction Rate` = round(data_pos, 2))
+
+```
+```{r}
+data.frame(`Biological Sex` = c("Male", "Female"), Observations = gen_obsv, Accuracy = round(gen_acc, 2), `Positive Prediction Rate` = round(gen_pos, 2))
+```
+
+
+
+```{r}
+total_perf = caret::confusionMatrix(as.factor(performance_df$results), as.factor(performance_df$outcome))
+
+```
+
+
+```{r}
+combinedDatasetRaw = combinedDatasetRaw %>% select(-one_of("mean", "q1", "q3"))
+combinedDatasetRaw$mean = rowMeans(combinedDatasetRaw %>% select(-c(source)))
+combinedDatasetRaw$q1 = rowQuantiles(combinedDatasetRaw %>% select(-c(source, mean)) %>% as.matrix(), probs=c(0.25))
+combinedDatasetRaw$q3 = rowQuantiles(combinedDatasetRaw %>% select(-c(source, mean, q1)) %>% as.matrix(), probs=c(0.75))
+```
+
+```{r}
+ggplot(data = combinedDatasetRaw, aes(x = rownames(combinedDatasetRaw), y = mean)) +
+        geom_point(aes(color = source), size = 0.1) +
+        geom_errorbar(aes(ymin = q1,
+                          ymax = q3,
+                          color = source), size = 0.15,  alpha = 0.55) +
+        
+        theme(axis.ticks = element_blank()) +
+        theme(axis.text.x = element_blank()) +
+        xlab("Samples") +  ylab("Expression Level (Log)")+
+        theme(axis.title.y=element_blank()) +
+        labs(title = "Raw Data (Top 100 MOst Variable Genes)") +
+        theme(plot.title = element_text(size=10)) + scale_color_viridis(discrete = TRUE, option = "inferno", alpha = 1, begin = 0, end = 0.8)
+```
+```{r}
+
+combined_pairwise = combinedDataset %>% select(-c(outcome, source, biological_sex))
+combined_pairwise = 1+combined_pairwise
+combined_pairwise = log(combined_pairwise)
+
+combined_pairwise = as.data.frame(pairwise_col_diff(combined_pairwise %>% as.matrix()))
+
+combined_pairwise$source = combinedDataset$source
+combined_pairwise$outcome = combinedDataset$outcome
+
+```
+
+
+```{r}
+
+combined_pairwise$mean = rowMeans(combined_pairwise %>% select(-c(outcome, source)))
+combined_pairwise$q1 = rowQuantiles(combined_pairwise %>% select(-c(outcome, source, mean)) %>% as.matrix(), probs=c(0.25))
+combined_pairwise$q3 = rowQuantiles(combined_pairwise %>% select(-c(outcome, source, mean, q1)) %>% as.matrix(), probs=c(0.75))
+```
+```{r}
+ggplot(data = combined_pairwise, aes(x = rownames(combined_pairwise), y = mean)) +
+        geom_point(aes(color = source), size = 0.1) +
+        geom_errorbar(aes(ymin = q1,
+                          ymax = q3,
+                          color = source), size = 0.15,  alpha = 0.55) +
+        
+        theme(axis.ticks = element_blank()) +
+        theme(axis.text.x = element_blank()) +
+        xlab("Samples") +  ylab("Expression Level (Log)")+
+        theme(axis.title.y=element_blank()) +
+        labs(title = "Log Transformed + Pairwise Difference") +
+        theme(plot.title = element_text(size=10)) + scale_color_viridis(discrete = TRUE, option = "inferno", alpha = 1, begin = 0, end = 0.8)
+```
 
 
 # Results
@@ -554,32 +667,18 @@ combinedDataset
 
 ## Biological Sex Model
 
-```{r}
-exp_GSE46474 = (exprs(GSE46474))
-Variance = rowVars(as.matrix(exp_GSE46474))
-Variance = as.data.frame(Variance)
-exp_GSE46474 = as.data.frame(exp_GSE46474)
-exp_GSE46474 = cbind(exp_GSE46474, variance = Variance)
-exp_GSE46474 = slice_max(exp_GSE46474, order_by = Variance, n = 300)
-exp_GSE46474 = subset(exp_GSE46474, select = -c(Variance)) 
-row_names_exp_GSE46474 = rownames(exp_GSE46474)
-exp_GSE46474 = as.data.frame(t(as.matrix(exp_GSE46474))) %>% select(c("XIST", "EIF1AY", "ANKRD44"))
 
+```{r}
 p_GSE46474 = pData(GSE46474)
-p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1)
-
-exp_GSE46474 = exp_GSE46474 + 1
-exp_GSE46474 = log(exp_GSE46474)
-exp_GSE46474 = pairwise_col_diff(exp_GSE46474) %>% as.matrix()
+p_GSE46474$outcome = ifelse(p_GSE46474$characteristics_ch1.1 == "Sex: M", 0, 1) # Male is 0 and female is 1
+exprs_GSE46474 = data.frame(t(exprs(GSE46474)))
+exprs_GSE46474 = exprs_GSE46474 %>% select(c("XIST", "EIF1AY", "ANKRD44"))
+exprs_GSE46474 = pairwise(exprs_GSE46474, transform_type="Log") %>% as.matrix()
+exprs_GSE46474 = data.frame(exprs_GSE46474)
 ```
 
 ```{r}
-X1 = as.data.frame(exp_GSE46474)
-y1 = p_GSE46474$outcome
-```
-
-```{r}
-X1 = z
+X1 = exprs_GSE46474
 y1 = p_GSE46474$outcome
 
 cvK = 5 # Number of CV folds
@@ -604,9 +703,6 @@ for (i in 1:50) {
 }
 ```
 
-```{r}
-mean(cv_50acc5_knn)
-```
 
 
 
@@ -614,7 +710,6 @@ mean(cv_50acc5_knn)
 ```{r}
 combined_res = merge(merge(cpop1, cpop2, all=TRUE), cpop3, all=TRUE) %>% arrange(desc(avg))
 combined_res = subset(combined_res, !duplicated(subset(combined_res, select = c(coef_name))))
-combined_res
 ```
 
 ```{r}
